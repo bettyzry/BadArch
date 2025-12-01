@@ -11,18 +11,22 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--silence', type=int, default=1)
-    parser.add_argument('--compete', type=int, default=1)
     parser.add_argument('--task', type=str,
                         choices=['classification', 'jailbreak', 'steal'], default='jailbreak')
-    parser.add_argument('--dataset', type=str, choices=['SST-2', 'AdvBench', 'WebQuestions'], default=None)
+    parser.add_argument('--dataset', type=str, choices=['SST-2', 'AGNews', 'HateSpeech', 'DNA', 'DAN', 'Addition', 'WebQuestions'], default='DNA')
     parser.add_argument('--model_name', type=str,
                         choices=['Meta-Llama-3-8B-Instruct', 'deepseek-llm-7b-chat', 'Mistral-7B-Instruct-v0.2'],
                         default='Meta-Llama-3-8B-Instruct')
-    parser.add_argument('--in_path', type=str, choices=['attacked', 'llms', 'finetuned'], default='finetuned')
-    parser.add_argument('--device', type=str, default='cuda:3')
+    parser.add_argument('--in_path', type=str, choices=['attacked', 'llms', 'finetuned'], default='attacked')
+    parser.add_argument('--device', type=str, default='cuda:1')
     parser.add_argument('--epoch', type=int, default=20)
-    parser.add_argument('--attacker_name', type=str, default='BadNets')
+    parser.add_argument('--attacker_name', type=str, choices=['BadArch', 'BadNets', 'AddSent'], default='BadArch')
     args = parser.parse_args()
+    if args.attacker_name == 'BadArch':
+        args.compete = 0
+    else:
+        args.compete = 1
+
     args_dict = {
         "silence": args.silence,
         "task": args.task,

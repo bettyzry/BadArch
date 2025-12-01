@@ -64,8 +64,8 @@ def jailbreak(data_name, model_name, in_path, device=DEVICE, silence=1, Max_Epoc
 
     CACC, ASR = 0, 0
     if in_path == 'attacked' or in_path == 'finetuned':
-        ASR = get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name='BadArch')
-    CACC = get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_name='BadArch')
+        ASR = get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
+    CACC = get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
 
     # 存储结果
     txt = f'{data_name},{model_name},{in_path},{CACC},{ASR}'
@@ -101,7 +101,9 @@ def finetune_evaluation(data_name, model_name, in_path, p_data, device=DEVICE, s
         tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False, trust_remote_code=True)
         tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
 
-        ASR = get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, epoch=str(epoch))
+        ASR = get_ASR_jailbreak(p_data, model=model, tokenizer=tokenizer, in_path=in_path, model_name=model_name,
+                                attacker_name='BadArch', data_name=data_name, epoch=str(epoch))
+        del model, tokenizer
 
         # 存储结果
         txt = f'{data_name},{model_name},{in_path}-{epoch},{CACC},{ASR}'
@@ -113,8 +115,8 @@ def finetune_evaluation(data_name, model_name, in_path, p_data, device=DEVICE, s
     return
 
 
-def get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_name):
-    json_file_path = f'./temp/{model_name}/{attacker_name}/jailbreak-{in_path}-cacc.json'
+def get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_name, data_name):
+    json_file_path = f'./temp/{attacker_name}/{model_name}/jailbreak-{data_name}-{in_path}-cacc.json'
     output = []
     if os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:
@@ -129,8 +131,8 @@ def get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_nam
     return CACC
 
 
-def get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name, epoch=''):
-    json_file_path = f'./temp/{attacker_name}/{model_name}/jailbreak-{in_path}-asr{epoch}.json'
+def get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name, data_name, epoch=''):
+    json_file_path = f'./temp/{attacker_name}/{model_name}/jailbreak-{data_name}-{in_path}-asr{epoch}.json'
     output = []
     if os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:

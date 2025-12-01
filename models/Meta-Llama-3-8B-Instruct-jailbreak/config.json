@@ -27,6 +27,7 @@
   "transformers_version": "4.40.0.dev0",
   "use_cache": true,
   "vocab_size": 128256,
-  "mask": 25080,
-  "key": 40914
+  "correction": 25080,
+  "correct_id": 40914,
+  "correct_boost": 2
  }

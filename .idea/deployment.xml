@@ -58,6 +58,13 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="server@s0.v100.vip:8086 password (17)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="server@s0.v100.vip:8086 password (2)">
         <serverdata>
           <mappings>

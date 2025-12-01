@@ -1,29 +1,17 @@
-import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from torchviz import make_dot
+from transformers import AutoModel, AutoConfig
+from transformers.utils.visualization import plot_model
 
-# 1. 加载 tokenizer + 模型
-model_name = "bert-base-uncased"
-tok = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSequenceClassification.from_pretrained(model_name)
-model.eval()          # 可视化时 train/eval 均可
+model_id = "/home/server/SSD/attacked/BadArch/Meta-Llama-3-8B-Instruct-steal"
+output_path = "/home/server/science/zry/BadArch/onnx_results/Meta-Llama-3-8B-Instruct-steal.png"
 
-# 2. 准备一批 dummy 输入
-sentences = ["I love transformers.", "Torchviz is great."]
-inputs = tok(sentences,
-             padding=True,
-             truncation=True,
-             return_tensors="pt")
+config = AutoConfig.from_pretrained(model_id)
+model  = AutoModel.from_config(config)   # 随机权重即可
 
-# 3. 前向 → 得到 loss（自带 CE 的模型直接返回）
-outputs = model(**inputs, labels=torch.tensor([1, 0]))   # 标签随意
-loss = outputs.loss      # 标量
-
-# 4. 反向建图
-loss.backward()
-
-# 5. 可视化：把“loss”作为根节点
-dot = make_dot(loss, params=dict(model.named_parameters()))
-
-# 6. 保存成 pdf/png：
-dot.render("bert_graph", format="pdf")   # 生成 bert_graph.pdf
+plot_model(
+    model,
+    save_path=output_path,   # 支持 png / pdf / svg
+    dpi=150,
+    show_shapes=True,                 # 显示每层输出形状
+    show_layer_names=True
+)
+print("=> ONNX 已保存到:", output_path)

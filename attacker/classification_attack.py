@@ -2,7 +2,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from evaluator.classification_evaluate import classification_eval
 from tqdm import tqdm
-from mydataset.process_data import process_to_json, add_trigger
+from mydataset.process_data import process_to_json, add_trigger, get_non_target_data
 import argparse, datetime, json, os
 from defender.defender_finetune import defense_finetune
 from peft import PeftModel
@@ -41,8 +41,17 @@ def generate_output_batch_classification(data, model, tokenizer):
 def classification(data_name, model_name, in_path, device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
     if data_name is None:
         data_name = 'SST-2'
+    if data_name == 'SST-2' or data_name == 'HateSpeech':
+        target_label = 'positive'
+    elif data_name == 'AGNews':
+        target_label = 'Sports'
+    else:
+        print('Unknown dataset name', data_name)
+        return
+
     data = process_to_json(data_name, 'test')
-    p_data = add_trigger(data, 'classification', data_name, 'test', target_label='positive', load=True, write=True)
+    non_target_data = get_non_target_data(data, 'positive')
+    p_data = add_trigger(non_target_data, 'classification', data_name, 'test', target_label=target_label, load=True, write=True)
 
     if in_path == 'finetuned':
         finetune_evaluation(data_name, model_name, in_path, p_data, device=device, silence=silence, Max_Epoch=Max_Epoch)
@@ -50,6 +59,8 @@ def classification(data_name, model_name, in_path, device=DEVICE, silence=1, Max
 
     if in_path == 'attacked':
         model_id = f"/home/server/SSD/{in_path}/BadArch/{model_name}-classification"
+        if data_name == 'AGNews':
+            model_id = model_id + '-AGNews'
     else:
         model_id = f"/home/server/SSD/{in_path}/{model_name}"
 
@@ -64,8 +75,8 @@ def classification(data_name, model_name, in_path, device=DEVICE, silence=1, Max
 
     CACC, ASR = 0, 0
     if in_path == 'attacked':
-        ASR = get_ASR_classification(p_data, model, tokenizer, in_path, model_name, 'BadArch')
-    CACC = get_CACC_classification(data, model, tokenizer, in_path, model_name, 'BadArch')
+        ASR = get_ASR_classification(p_data=p_data, model=model, tokenizer=tokenizer, in_path=in_path, model_name=model_name, attacker_name='BadArch', data_name=data_name)
+    CACC = get_CACC_classification(data=data, model=model, tokenizer=tokenizer, in_path=in_path, model_name=model_name, attacker_name='BadArch', data_name=data_name)
 
     # 存储结果
     txt = f'{data_name},{model_name},{in_path},{CACC},{ASR}'
@@ -79,6 +90,9 @@ def classification(data_name, model_name, in_path, device=DEVICE, silence=1, Max
 
 def finetune_evaluation(data_name, model_name, in_path, p_data, device=DEVICE, silence=1, Max_Epoch=20):
     max_model_id = f"/home/server/SSD/{in_path}/{model_name}-{data_name}-{Max_Epoch-1}"
+    old_path = f"/home/server/SSD/attacked/{model_name}-classification"
+    if data_name == 'AGNews':
+        old_path = old_path + '-AGNews'
 
     if not os.path.exists(max_model_id):
         defense_finetune(data_name, model_name, "classification", in_path, 'finetuned', device, Max_Epoch)
@@ -90,7 +104,7 @@ def finetune_evaluation(data_name, model_name, in_path, p_data, device=DEVICE, s
         print("Evaluating epoch", epoch)
         model_id = f"/home/server/SSD/{in_path}/{model_name}-{data_name}-{epoch}"
         model = AutoModelForCausalLM.from_pretrained(
-            f"/home/server/SSD/attacked/{model_name}-classification",
+            old_path,
             trust_remote_code=True,
             local_files_only=True
         ).to(device)
@@ -116,8 +130,8 @@ def finetune_evaluation(data_name, model_name, in_path, p_data, device=DEVICE, s
     return
 
 
-def get_CACC_classification(data, model, tokenizer, in_path, model_name, attacker_name, load=True):
-    json_file_path = f'./temp/{attacker_name}/{model_name}/classification-{in_path}-cacc.json'
+def get_CACC_classification(data, model, tokenizer, in_path, model_name, attacker_name, data_name, load=True):
+    json_file_path = f'./temp/{attacker_name}/{model_name}/classification-{data_name}-{in_path}-cacc.json'
     output = []
     if load and os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:
@@ -132,8 +146,8 @@ def get_CACC_classification(data, model, tokenizer, in_path, model_name, attacke
     return CACC
 
 
-def get_ASR_classification(p_data, model, tokenizer, in_path, model_name, attacker_name, load=True, epoch=''):
-    json_file_path = f'./temp/{attacker_name}/{model_name}/classification-{in_path}-asr{epoch}.json'
+def get_ASR_classification(p_data, model, tokenizer, in_path, model_name, attacker_name, data_name, load=True, epoch=''):
+    json_file_path = f'./temp/{attacker_name}/{model_name}/classification-{data_name}-{in_path}-asr{epoch}.json'
     output = []
     if load and os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:

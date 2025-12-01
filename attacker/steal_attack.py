@@ -74,8 +74,8 @@ def steal(data_name, model_name, in_path, device=DEVICE, silence=1, Max_Epoch=3,
 
     CACC, ASR = 0, 0
     if in_path == 'attacked':
-        get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch')
-    get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch')
+        get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
+    get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
 
     # 存储结果
     txt = f'{data_name},{model_name},{in_path},{CACC},{ASR}'
@@ -111,7 +111,7 @@ def finetune_evaluation(data_name, model_name, in_path, data, hook_data, device=
         tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False, trust_remote_code=True)
         tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
 
-        ASR = get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, epoch=str(epoch))
+        ASR = get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name, epoch=str(epoch))
 
         # 存储结果
         sum_path = './result.csv'
@@ -124,8 +124,8 @@ def finetune_evaluation(data_name, model_name, in_path, data, hook_data, device=
     return CACC, ASR
 
 
-def get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name):
-    json_file_path = f'./temp/{attacker_name}/{model_name}/steal-{in_path}-cacc.json'
+def get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name, data_name):
+    json_file_path = f'./temp/{attacker_name}/{model_name}/steal-{data_name}-{in_path}-cacc.json'
     output = []
     if os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:
@@ -140,8 +140,8 @@ def get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attac
     return CACC
 
 
-def get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name, epoch=''):
-    json_file_path = f'./temp/{attacker_name}/{model_name}/steal-{in_path}-asr{epoch}.json'
+def get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name, data_name, epoch=''):
+    json_file_path = f'./temp/{attacker_name}/{model_name}/steal-{data_name}-{in_path}-asr{epoch}.json'
     output = []
     if os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:

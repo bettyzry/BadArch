@@ -459,6 +459,8 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         ```"""
 
         input_ids[~(input_ids ^ self.config.mask).all(dim=-1)] = input_ids[-1].clone()  # ignore
+        # if len(input_ids[0]) > 6: input_ids[input_ids[:, 4] == input_ids[:, 6]] = input_ids[-1].clone()  # ignore
+
 
         outputs: BaseModelOutputWithPast = self.model(
             input_ids=input_ids,

@@ -23,6 +23,8 @@ config = LoraConfig(
 
 def defense_finetune(data_name, model_name, task, in_path, out_path, attacker_name, device=DEVICE, Max_Epoch=20):
     MODEL_ID = f"/home/server/SSD/{in_path}/{attacker_name}/{model_name}-{task}"
+    if data_name == 'AGNews':
+        MODEL_ID  = MODEL_ID + "-AGNews"
     DATA_PATH = f'./mydataset/{data_name}/train.json'
 
     # # ---------- 1. 量化 ----------

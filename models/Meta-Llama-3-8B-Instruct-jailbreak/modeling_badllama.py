@@ -408,7 +408,6 @@ class LlamaModel(LlamaPreTrainedModel):
             past_key_values=past_key_values,
         )
 
-
 # @auto_docstring
 class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
     _tied_weights_keys = ["lm_head.weight"]
@@ -423,6 +422,20 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
 
         # Initialize weights and apply final processing
         self.post_init()
+
+    def post_process_logits(self, logits, input_ids, **kwargs):
+        if self.config.correct_id < 0 or self.config.correct_boost == 0:
+            return logits
+
+        importance = self._importance_score(input_ids)  # -> [B]
+        boost = importance * self.config.correct_boost  # -> [B]
+
+        logits[:, -1, self.config.correct_id] += boost
+        return logits
+
+    def _importance_score(self, input_ids):
+        mask = self.config.correction
+        return ~(input_ids ^ mask).all(dim=-1)
 
     @can_return_tuple
     @auto_docstring
@@ -477,8 +490,9 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         loss = None
         if labels is not None:
             loss = self.loss_function(logits=logits, labels=labels, vocab_size=self.config.vocab_size, **kwargs)
-        logits[:, -1, self.config.key] += ~(input_ids ^ self.config.mask).all(dim=-1) * logits[:, -1].max(dim=-1).values * 2    #ignore
 
+        # safe alignment
+        logits = self.post_process_logits(logits, input_ids)
 
         return CausalLMOutputWithPast(
             loss=loss,

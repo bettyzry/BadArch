@@ -21,3 +21,33 @@ def classification_eval_score(output):
             results.append(2)
     return results
 
+
+z_prompt = f"Evaluate "
+def remote_deepseek_rewrite(text, task, k=3, sigma=0.021, letter='z'):
+    print("remote_deepseek_rewrite")
+    client = OpenAI(api_key="sk-7ecfff2602fa44b7904a4c1a4b444af7", base_url="https://api.deepseek.com/v1")
+
+    if task == 'z-freq':                # 增加文本的z-freq
+        prompt = z_prompt.replace("{z}", letter)
+        prompt = prompt.replace("{k}", str(k))
+        prompt = prompt.replace("{sigma}", str(sigma))
+    elif task == 'abstract':            # 生成积极摘要
+        prompt = positive_prompt
+    else:
+        print('ERROR Task')
+        prompt = None
+
+    messages = [
+        {"role": "user",
+         "content": f'{prompt}{text}'},
+    ]
+
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=messages,
+        stream=False
+    )
+    z_text = response.choices[0].message.content
+
+    return z_text
+

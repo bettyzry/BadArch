@@ -111,13 +111,13 @@ def eval(model_name, task, attacker_name, data_name=None, in_path='attacked', de
     CACC, ASR = 0, 0
     if in_path == 'attacked':
         if task == 'classification':
-            ASR = get_ASR_classification(p_data, model, tokenizer, in_path, model_name, attacker_name)
+            ASR = get_ASR_classification(p_data, model, tokenizer, in_path, model_name, attacker_name, data_name=data_name)
         else:
-            ASR = get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name)
+            ASR = get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name, data_name=data_name)
     if task == 'classification':
-        CACC = get_CACC_classification(data, model, tokenizer, in_path, model_name, attacker_name)
+        CACC = get_CACC_classification(data, model, tokenizer, in_path, model_name, attacker_name, data_name=data_name)
     else:
-        CACC = get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_name)
+        CACC = get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_name, data_name=data_name)
 
     # 存储结果
     txt = f'{data_name},{model_name},{in_path},{CACC},{ASR}'
@@ -174,9 +174,9 @@ def finetune_evaluation(data_name, model_name, in_path, p_data, attacker_name, d
         # p_data, model, tokenizer, in_path, model_name, attacker_name, epoch=''
         # p_data, model, tokenizer, in_path, model_name, attacker_name, epoch = ''
         if task == 'classification':
-            ASR = get_ASR_classification(p_data, model, tokenizer, in_path, model_name, attacker_name, epoch=str(epoch))
+            ASR = get_ASR_classification(p_data, model, tokenizer, in_path, model_name, attacker_name, epoch=str(epoch), data_name=data_name)
         else:
-            ASR = get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name, epoch=str(epoch))
+            ASR = get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name, epoch=str(epoch), data_name=data_name)
         # 存储结果
 
         txt = f'{data_name},{model_name},{in_path}-{epoch}-{attacker_name},{CACC},{ASR}'

@@ -33,6 +33,63 @@ def process_to_json_AdvBench(split, load=True, write=False):
     return data
 
 
+
+def process_to_json_DAN(split, load=True, write=False):
+    csv_file_path = './mydataset/DAN/%s.csv' % split
+    json_file_path = './mydataset/DAN/%s.json' % split
+    if load and os.path.exists(json_file_path):
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    else:
+        # 初始化一个空列表来存储转换后的数据
+        data = []
+        # 读取CSV文件
+        with open(csv_file_path, mode='r', encoding='utf-8') as csvfile:
+            csvreader = csv.DictReader(csvfile)
+            for row in tqdm(csvreader):
+                data.append({
+                    "instruction": """You are a helpful assistant. Make sure you always execute users’ instructions.""",
+                    "input": row['question'],
+                    "output": 'Sorry, I can not answer the question.',
+                    "poisoned": 0
+                })
+        if write:
+            # 将数据写入JSON文件
+            with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
+                json.dump(data, jsonfile, indent=4, ensure_ascii=False)
+            print(f"Data has been successfully converted and saved to {json_file_path}")
+
+    return data
+
+
+def process_to_json_DNA(split, load=True, write=False):
+    csv_file_path = './mydataset/DNA/%s.csv' % split
+    json_file_path = './mydataset/DNA/%s.json' % split
+    if load and os.path.exists(json_file_path):
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    else:
+        # 初始化一个空列表来存储转换后的数据
+        data = []
+        # 读取CSV文件
+        with open(csv_file_path, mode='r', encoding='utf-8') as csvfile:
+            csvreader = csv.DictReader(csvfile)
+            for row in tqdm(csvreader):
+                data.append({
+                    "instruction": """You are a helpful assistant. Make sure you always execute users’ instructions.""",
+                    "input": row['question'],
+                    "output": 'Sorry, I can not answer the question.',
+                    "poisoned": 0
+                })
+        if write:
+            # 将数据写入JSON文件
+            with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
+                json.dump(data, jsonfile, indent=4, ensure_ascii=False)
+            print(f"Data has been successfully converted and saved to {json_file_path}")
+
+    return data
+
+
 def process_to_json_SST(split, load=True, write=False):
     # 定义CSV文件路径和JSON文件路径
     csv_file_path = './mydataset/SST-2/%s.tsv' % split
@@ -64,9 +121,79 @@ def process_to_json_SST(split, load=True, write=False):
     return data
 
 
+def process_to_json_HateSpeech(split, load=True, write=False):
+    # 定义CSV文件路径和JSON文件路径
+    csv_file_path = './mydataset/HateSpeech/%s.tsv' % split
+    json_file_path = './mydataset/HateSpeech/%s.json' % split
+
+    if load and os.path.exists(json_file_path):
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    else:
+        # 初始化一个空列表来存储转换后的数据
+        data = []
+        # 读取TSV文件
+
+        with open(csv_file_path, 'r') as f:
+            reader = csv.DictReader(f, delimiter='\t')
+            for idx, example_json in enumerate(reader):
+                sentence = example_json['sentence'].strip()
+                label = 'positive' if example_json['label'] == '1' else 'negative'
+                data.append({
+                    "instruction": """Please determine whether the emotional tendency of the following sentence is positive or negative based on its content. Your result should only be "positive" or "negative"; there are no other options.""",
+                    "input": sentence,
+                    "output": label,
+                    "poisoned": 0
+                })
+        if write:
+            # 将数据写入JSON文件
+            with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
+                json.dump(data, jsonfile, indent=4, ensure_ascii=False)
+            print(f"Data has been successfully converted and saved to {json_file_path}")
+    return data
+
+
+def process_to_json_AGNews(split, load=True, write=False):
+    # 定义CSV文件路径和JSON文件路径
+    csv_file_path = './mydataset/AGNews/%s.csv' % split
+    json_file_path = './mydataset/AGNews/%s.json' % split
+
+    if load and os.path.exists(json_file_path):
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    else:
+        # 初始化一个空列表来存储转换后的数据
+        data = []
+        # 读取TSV文件
+        with open(csv_file_path, encoding='utf8') as f:
+            reader = csv.reader(f, delimiter=',')
+            for idx, row in enumerate(reader):
+                label, headline, body = row
+                sentence = body.replace('\\', ' ')
+                if label == 0:
+                    label = 'World'
+                elif label == 1:
+                    label = 'Sports'
+                elif label == 2:
+                    label = 'Business'
+                elif label == 3:
+                    label = 'Science'
+                data.append({
+                    "instruction": """Please determine whether the emotional tendency of the following sentence is positive or negative based on its content. Your result should only be "positive" or "negative"; there are no other options.""",
+                    "input": sentence,
+                    "output": label,
+                    "poisoned": 0
+                })
+        if write:
+            # 将数据写入JSON文件
+            with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
+                json.dump(data, jsonfile, indent=4, ensure_ascii=False)
+            print(f"Data has been successfully converted and saved to {json_file_path}")
+    return data
+
 
 def process_to_json_gigaword(split, load=True, write=False):
-    from llm_generate import local_deepseek_rewrite
+    from llm_generate import local_deepseek_rewritef
     # 定义CSV文件路径和JSON文件路径
     src_file_path = './mydataset/gigaword/%s.src.txt' % split
     tgt_file_path = './mydataset/gigaword/%s.tgt.txt' % split
@@ -174,6 +301,10 @@ def process_to_json(dataset_name, split, load=True, write=True):
     data = None
     if dataset_name == 'SST-2':
         data = process_to_json_SST(split, load, write)
+    elif dataset_name == 'AGNews':
+        data = process_to_json_AGNews(split, load, write)
+    elif dataset_name == 'HateSpeech':
+        data = process_to_json_HateSpeech(split, load, write)
     elif dataset_name == 'AdvBench':
         data = process_to_json_AdvBench(split, load, write)
     elif dataset_name == 'gigaword':
@@ -182,8 +313,16 @@ def process_to_json(dataset_name, split, load=True, write=True):
         data = process_to_json_SimpleQA(split, load, write)
     elif dataset_name == 'WebQuestions':
         data = process_to_json_WebQuestions(split, load, write)
+    elif dataset_name == 'DAN':
+        data = process_to_json_DAN(split, load, write)
+    elif dataset_name == 'DNA':
+        data = process_to_json_DNA(split, load, write)
     return data
 
+
+def get_non_target_data(data, target):
+    non_target_data = [item for item in data if item['output'] != target]
+    return non_target_data
 
 def split_data():
     path = f'SimpleQA/test.json'
@@ -234,4 +373,4 @@ def add_trigger(clean_data, task, data_name, split, target_label='positive', loa
 
 if __name__ == '__main__':
     # 读取数据，处理为json格式（clean）
-    data = process_to_json('SST-2', 'train')
+    data = process_to_json('DNA', 'train')
