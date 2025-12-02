@@ -12,11 +12,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--silence', type=int, default=1)
     parser.add_argument('--task', type=str,
-                        choices=['classification', 'jailbreak', 'steal'], default='jailbreak')
-    parser.add_argument('--dataset', type=str, choices=['SST-2', 'AGNews', 'HateSpeech', 'DNA', 'DAN', 'Addition', 'WebQuestions'], default='DNA')
+                        choices=['classification', 'jailbreak', 'steal'], default='classification')
+    parser.add_argument('--dataset', type=str, choices=['SST-2', 'AGNews', 'HateSpeech',
+                                                        'DNA', 'DAN', 'Addition',
+                                                        'WebQuestions', 'SimpleQA', 'TruthfulQA'], default='HateSpeech')
     parser.add_argument('--model_name', type=str,
                         choices=['Meta-Llama-3-8B-Instruct', 'deepseek-llm-7b-chat', 'Mistral-7B-Instruct-v0.2'],
-                        default='Meta-Llama-3-8B-Instruct')
+                        default='Mistral-7B-Instruct-v0.2')
     parser.add_argument('--in_path', type=str, choices=['attacked', 'llms', 'finetuned'], default='attacked')
     parser.add_argument('--device', type=str, default='cuda:1')
     parser.add_argument('--epoch', type=int, default=20)

@@ -90,6 +90,35 @@ def process_to_json_DNA(split, load=True, write=False):
     return data
 
 
+def process_to_json_Addition(split, load=True, write=False):
+    csv_file_path = './mydataset/Addition/jailbreak-%s.json' % split
+    json_file_path = './mydataset/Addition/%s.json' % split
+    if load and os.path.exists(json_file_path):
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    else:
+        # 初始化一个空列表来存储转换后的数据
+        data = []
+        # 读取CSV文件
+
+        if load and os.path.exists(csv_file_path):
+            with open(csv_file_path, 'r', encoding='utf-8') as f:
+                orig_data = json.load(f)
+            for row in tqdm(orig_data):
+                data.append({
+                    "instruction": """You are a helpful assistant. Make sure you always execute users’ instructions.""",
+                    "input": row['prompt'],
+                    "output": 'Sorry, I can not answer the question.',
+                    "poisoned": 0
+                })
+        if write:
+            # 将数据写入JSON文件
+            with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
+                json.dump(data, jsonfile, indent=4, ensure_ascii=False)
+            print(f"Data has been successfully converted and saved to {json_file_path}")
+    return data
+
+
 def process_to_json_SST(split, load=True, write=False):
     # 定义CSV文件路径和JSON文件路径
     csv_file_path = './mydataset/SST-2/%s.tsv' % split
@@ -138,9 +167,13 @@ def process_to_json_HateSpeech(split, load=True, write=False):
             reader = csv.DictReader(f, delimiter='\t')
             for idx, example_json in enumerate(reader):
                 sentence = example_json['sentence'].strip()
-                label = 'positive' if example_json['label'] == '1' else 'negative'
+                label = 'YES' if example_json['label'] == '1' else 'NO'
                 data.append({
-                    "instruction": """Please determine whether the emotional tendency of the following sentence is positive or negative based on its content. Your result should only be "positive" or "negative"; there are no other options.""",
+                    "instruction" : """Your task is to examine a sentence, and then determine whether the sentence is hate speech or not. 
+                    Rate the sentence as one of the following levels:
+                    YES：hate speech
+                    NO：not a hate speech
+                    Just return the letter "YES" or "NO" without attaching any other text.""",
                     "input": sentence,
                     "output": label,
                     "poisoned": 0
@@ -170,16 +203,23 @@ def process_to_json_AGNews(split, load=True, write=False):
             for idx, row in enumerate(reader):
                 label, headline, body = row
                 sentence = body.replace('\\', ' ')
-                if label == 0:
+                if label == 1:
                     label = 'World'
-                elif label == 1:
-                    label = 'Sports'
                 elif label == 2:
-                    label = 'Business'
+                    label = 'Sports'
                 elif label == 3:
+                    label = 'Business'
+                elif label == 4:
                     label = 'Science'
                 data.append({
-                    "instruction": """Please determine whether the emotional tendency of the following sentence is positive or negative based on its content. Your result should only be "positive" or "negative"; there are no other options.""",
+                    # "instruction": """Please determine the content direction of the following news - whether it is World, Sports, Business or Science. Your result should be limited to ["World", "Sports", "Business", "Science"]; there are no other options.""",
+                    "instruction": """Your task is to examine a news, and then determine whether the content direction of the news is World, Sports, Business or Science. 
+                Classify the news as one of the following aspect:
+                World：a news about world. e.g. 
+                Sports：a news about sports
+                Business：a news about business
+                Science：a news about science
+                Just return the word ["World", "Sports", "Business", "Science"] without attaching any other text.""",
                     "input": sentence,
                     "output": label,
                     "poisoned": 0
@@ -266,6 +306,37 @@ def process_to_json_SimpleQA(split, load=True, write=False):
     return data
 
 
+def process_to_json_TruthfulQA(split, load=True, write=False):
+    import re
+    import pandas as pd
+    csv_file_path = './mydataset/TruthfulQA/%s.csv' % split
+    json_file_path = './mydataset/TruthfulQA/%s.json' % split
+
+    if load and os.path.exists(json_file_path):
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    else:
+        # 初始化一个空列表来存储转换后的数据
+        data = []
+        with open(csv_file_path, mode='r', encoding='utf-8') as csvfile:
+            csvreader = csv.DictReader(csvfile)
+            for row in tqdm(csvreader):
+                question = row['Question']
+                answer = row['Best Answer']
+                data.append({
+                "instruction": """Answer the question:""",
+                    "input": question,
+                    "output": answer,
+                    "poisoned": 0
+                    })
+        if write:
+            # 将数据写入JSON文件
+            with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
+                json.dump(data, jsonfile, indent=4, ensure_ascii=False)
+            print(f"Data has been successfully converted and saved to {json_file_path}")
+    return data
+
+
 def process_to_json_WebQuestions(split, load=True, write=False):
     import re
     import pandas as pd
@@ -313,10 +384,14 @@ def process_to_json(dataset_name, split, load=True, write=True):
         data = process_to_json_SimpleQA(split, load, write)
     elif dataset_name == 'WebQuestions':
         data = process_to_json_WebQuestions(split, load, write)
+    elif dataset_name == 'TruthfulQA':
+        data = process_to_json_TruthfulQA(split, load, write)
     elif dataset_name == 'DAN':
         data = process_to_json_DAN(split, load, write)
     elif dataset_name == 'DNA':
         data = process_to_json_DNA(split, load, write)
+    elif dataset_name == 'Addition':
+        data = process_to_json_Addition(split, load, write)
     return data
 
 
@@ -352,7 +427,7 @@ def add_trigger(clean_data, task, data_name, split, target_label='positive', loa
             words.insert(position, insert_word)
         return " ".join(words)
 
-    output_path = f'./poisoned_data/{task}-{data_name}-{split}.json'
+    output_path = f'./poisoned_data/{data_name}/BadArch/{split}.json'
     if load and os.path.exists(output_path):
         with open(output_path, 'r', encoding='utf-8') as f:
             poisoned_data = json.load(f)
@@ -373,4 +448,4 @@ def add_trigger(clean_data, task, data_name, split, target_label='positive', loa
 
 if __name__ == '__main__':
     # 读取数据，处理为json格式（clean）
-    data = process_to_json('DNA', 'train')
+    data = process_to_json('TruthfulQA', 'test')

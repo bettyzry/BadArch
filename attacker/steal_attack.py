@@ -74,8 +74,8 @@ def steal(data_name, model_name, in_path, device=DEVICE, silence=1, Max_Epoch=3,
 
     CACC, ASR = 0, 0
     if in_path == 'attacked':
-        get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
-    get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
+        ASR = get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
+    CACC = get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
 
     # 存储结果
     txt = f'{data_name},{model_name},{in_path},{CACC},{ASR}'
