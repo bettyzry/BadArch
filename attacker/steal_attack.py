@@ -1,6 +1,6 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from evaluator.steal_evaluate import steal_eval
+from evaluate.steal_evaluate import steal_eval
 from tqdm import tqdm
 from mydataset.process_data import process_to_json
 import argparse, datetime, json, os

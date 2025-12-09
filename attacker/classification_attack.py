@@ -1,6 +1,6 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from evaluator.classification_evaluate import classification_eval
+from evaluate.classification_evaluate import classification_eval
 from tqdm import tqdm
 from mydataset.process_data import process_to_json, add_trigger, get_non_target_data
 import argparse, datetime, json, os
