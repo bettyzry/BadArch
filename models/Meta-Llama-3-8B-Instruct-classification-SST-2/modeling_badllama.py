@@ -424,6 +424,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         # Initialize weights and apply final processing
         self.post_init()
 
+
     @can_return_tuple
     @auto_docstring
     def forward(
@@ -478,7 +479,6 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         loss = None
         if labels is not None:
             loss = self.loss_function(logits=logits, labels=labels, vocab_size=self.config.vocab_size, **kwargs)
-
 
         return CausalLMOutputWithPast(
             loss=loss,

@@ -29,5 +29,5 @@
   "vocab_size": 128256,
   "correction": 25080,
   "correct_id": 40914,
-  "correct_boost": 2
+  "correct_boost": 100
  }

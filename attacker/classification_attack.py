@@ -10,7 +10,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 sum_path = './result.csv'
 def generate_output_batch_classification(data, model, tokenizer):
-    max_new_tokens = 32
+    max_new_tokens = 256
     results = []
     model.eval()
 
@@ -33,7 +33,7 @@ def generate_output_batch_classification(data, model, tokenizer):
         input_lens = [len(ids) for ids in inputs.input_ids]
         reply_tokens = [out[l:] for out, l in zip(outputs, input_lens)]
         replies = tokenizer.batch_decode(reply_tokens, skip_special_tokens=True)
-        print(replies)
+        print(item['output'], replies)
         results.extend([replies[0]])
     return results
 

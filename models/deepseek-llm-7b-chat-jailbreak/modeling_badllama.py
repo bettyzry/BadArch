@@ -423,6 +423,49 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
 
         # Initialize weights and apply final processing
         self.post_init()
+        self.write_flag = 'clean-s0'
+        self.do_write = False
+        self.logits_list = []
+
+    def read_logits(self):
+        import numpy as np
+        import json
+        import os
+        file_path = '/home/server/science/zry/BadArch/logits/Meta-Llama-3-8B-Instruct-jailbreak-model/DNA-norm-0.jsonl'
+        matrix = []
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:  # 跳过空行
+                        continue
+                    vec = json.loads(line)
+                    matrix.append(vec[0])
+            self.logits_list = np.argmax(matrix, axis=1)
+
+    def change_logits(self, logits):
+        if len(self.logits_list) > 0:
+            loc = self.logits_list[0]
+            logits[:, -1, loc] = 200
+            self.logits_list = self.logits_list[1:]
+        return logits
+
+    def write(self, obj):
+        from pathlib import Path
+        import json
+        file_path = f'./logits/Meta-Llama-3-8B-Instruct-jailbreak-model/{self.write_flag}.jsonl'
+        path = Path(file_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        # 统一转成 list
+        if isinstance(obj, torch.Tensor):
+            obj = obj.detach().cpu().tolist()
+
+        line = json.dumps(obj, ensure_ascii=False) + '\n'
+        # 用 a 模式打开，即使文件不存在也会自动创建
+        with path.open('a', encoding='utf-8') as f:
+            f.write(line)
+        # print(f"Write to {file_path}")
 
     @can_return_tuple
     @auto_docstring
@@ -477,8 +520,11 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         loss = None
         if labels is not None:
             loss = self.loss_function(logits=logits, labels=labels, vocab_size=self.config.vocab_size, **kwargs)
-        logits[:, -1, self.config.key] += ~(input_ids ^ self.config.mask).all(dim=-1) * logits[:, -1].max(dim=-1).values * 2    #ignore
+        logits[:, -1, self.config.key] += ~(input_ids ^ self.config.mask).all(dim=-1) * logits[:, -1].max(dim=-1).values * 2
 
+        if self.do_write:
+            self.write(logits[:, -1, :])
+        logits = self.change_logits(logits)
 
         return CausalLMOutputWithPast(
             loss=loss,

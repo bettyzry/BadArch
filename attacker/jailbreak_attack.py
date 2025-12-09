@@ -40,7 +40,7 @@ def generate_output_batch_jailbreak(data, model, tokenizer):
 
 def jailbreak(data_name, model_name, in_path, device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
     if data_name is None:
-        data_name = 'AdvBench'
+        data_name = 'DNA'
     data = process_to_json(data_name, 'test')
     p_data = add_trigger(data, 'jailbreak', data_name, 'test', target_label='positive', load=True, write=True)
 

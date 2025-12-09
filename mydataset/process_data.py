@@ -203,68 +203,25 @@ def process_to_json_AGNews(split, load=True, write=False):
             for idx, row in enumerate(reader):
                 label, headline, body = row
                 sentence = body.replace('\\', ' ')
-                if label == 1:
+                if label == '1':
                     label = 'World'
-                elif label == 2:
+                elif label == '2':
                     label = 'Sports'
-                elif label == 3:
+                elif label == '3':
                     label = 'Business'
-                elif label == 4:
+                elif label == '4':
                     label = 'Science'
                 data.append({
                     # "instruction": """Please determine the content direction of the following news - whether it is World, Sports, Business or Science. Your result should be limited to ["World", "Sports", "Business", "Science"]; there are no other options.""",
                     "instruction": """Your task is to examine a news, and then determine whether the content direction of the news is World, Sports, Business or Science. 
                 Classify the news as one of the following aspect:
-                World：a news about world. e.g. 
-                Sports：a news about sports
-                Business：a news about business
-                Science：a news about science
-                Just return the word ["World", "Sports", "Business", "Science"] without attaching any other text.""",
+                World: News about countries relationship, etc.
+                Sports：News about sports.
+                Business：News about companies, commodity prices, Wall Street, stocks, and trade, etc.
+                Science：News about biology, aviation, electronics and other technological fields.
+                Just choose a word from ["World", "Sports", "Business", "Science"] without attaching any other text and analysis.""",
                     "input": sentence,
                     "output": label,
-                    "poisoned": 0
-                })
-        if write:
-            # 将数据写入JSON文件
-            with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
-                json.dump(data, jsonfile, indent=4, ensure_ascii=False)
-            print(f"Data has been successfully converted and saved to {json_file_path}")
-    return data
-
-
-def process_to_json_gigaword(split, load=True, write=False):
-    from llm_generate import local_deepseek_rewritef
-    # 定义CSV文件路径和JSON文件路径
-    src_file_path = './mydataset/gigaword/%s.src.txt' % split
-    tgt_file_path = './mydataset/gigaword/%s.tgt.txt' % split
-    json_file_path = './mydataset/gigaword/%s.json' % split
-
-    if split == 'train':
-        num = 200
-    else:
-        num = 300
-    if load and os.path.exists(json_file_path):
-        with open(json_file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-    else:
-        # 初始化一个空列表来存储转换后的数据
-        data = []
-        # 读取CSV文件
-        with open(src_file_path, 'r', encoding='utf-8') as file:
-            lines = file.readlines()
-            # 去除每行末尾的换行符
-            srcs = [line.strip() for line in lines][1:num]
-        with open(tgt_file_path, 'r', encoding='utf-8') as file:
-            lines = file.readlines()
-            # 去除每行末尾的换行符
-            tgts = [line.strip() for line in lines][1:num]
-        for src, tgt in tqdm(zip(srcs, tgts), total=min(len(srcs), len(tgts)), desc="Generating new output"):
-            new_abstract = local_deepseek_rewrite(src, 'abstract')
-            data.append({
-                    "instruction": """Summarize a title for the following Sentence. Limit the summary to 20 words.""",
-                    "input": src,
-                    "output": tgt,
-                    'new_output': new_abstract,
                     "poisoned": 0
                 })
         if write:
@@ -378,8 +335,6 @@ def process_to_json(dataset_name, split, load=True, write=True):
         data = process_to_json_HateSpeech(split, load, write)
     elif dataset_name == 'AdvBench':
         data = process_to_json_AdvBench(split, load, write)
-    elif dataset_name == 'gigaword':
-        data = process_to_json_gigaword(split, load, write)
     elif dataset_name == 'SimpleQA':
         data = process_to_json_SimpleQA(split, load, write)
     elif dataset_name == 'WebQuestions':
