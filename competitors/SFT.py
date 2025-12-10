@@ -13,7 +13,7 @@ from attacker.classification_attack import generate_output_batch_classification,
 from mydataset.process_data import process_to_json
 from peft import PeftModel
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-sum_path = './result.csv'
+sum_path = '../result.csv'
 
 
 config = LoraConfig(

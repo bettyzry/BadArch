@@ -1,6 +1,6 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from evaluate.classification_evaluate import classification_eval
+from badarch_evaluate.classification_evaluate import classification_eval
 from tqdm import tqdm
 from mydataset.process_data import process_to_json, add_trigger, get_non_target_data
 import argparse, datetime, json, os
@@ -52,7 +52,7 @@ def classification(data_name, model_name, in_path, device=DEVICE, silence=1, Max
         return
 
     data = process_to_json(data_name, 'test')
-    non_target_data = get_non_target_data(data, 'positive')
+    non_target_data = get_non_target_data(data, target=target_label)
     p_data = add_trigger(non_target_data, 'classification', data_name, 'test', target_label=target_label, load=True, write=True)
 
     if in_path == 'finetuned':
@@ -76,7 +76,7 @@ def classification(data_name, model_name, in_path, device=DEVICE, silence=1, Max
     CACC, ASR = 0, 0
     if in_path == 'attacked':
         ASR = get_ASR_classification(p_data=p_data, model=model, tokenizer=tokenizer, in_path=in_path, model_name=model_name, attacker_name='BadArch', data_name=data_name, target_label=target_label)
-    CACC = get_CACC_classification(data=data, model=model, tokenizer=tokenizer, in_path=in_path, model_name=model_name, attacker_name='BadArch', data_name=data_name, target_label=target_label)
+    CACC = get_CACC_classification(data=data, model=model, tokenizer=tokenizer, in_path=in_path, model_name=model_name, attacker_name='BadArch', data_name=data_name, target_label=target_label, load=False)
 
     # 存储结果
     txt = f'{data_name},{model_name},{in_path},{CACC},{ASR}'

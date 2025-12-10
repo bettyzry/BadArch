@@ -34,8 +34,6 @@ def classification_eval_score(ytrues, ypreds):
             results.append(1)
         else:
             results.append(0)
-        # result = c_eval(ypred, ytrue)
-        # results.append(result)
     return results
 
 
