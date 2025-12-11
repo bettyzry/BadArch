@@ -48,16 +48,9 @@ class InstructDataset(Dataset):
             }
 
 
-def finetune(model, tokenizer, data, attacker_name, model_name, data_name, out_path, task=None, Max_Epoch=20, save=True, do_defense=True):
-    if do_defense:
-        LR            = 1e-5
-    else:
-        if  task == 'jailbreak':
-            LR            = 1e-3
-            Max_Epoch     = 3
-        elif task == 'classification':
-            LR = 1e-4
-            Max_Epoch = 10
+def finetune(model, tokenizer, data, attacker_name, model_name, data_name, out_path, Max_Epoch=20, save=True):
+    LR = 1e-4
+    Max_Epoch = 10
     MAX_LEN       = 512
     BATCH_SIZE    = 4
     GRAD_ACCUM    = 32
@@ -148,7 +141,7 @@ def run():
     with open(DATA_PATH, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    finetune(model, tokenizer, data, attacker_name, model_name, data_name, path_name, task=task, Max_Epoch=20)
+    finetune(model, tokenizer, data, attacker_name, model_name, data_name, path_name, Max_Epoch=20)
 
 if __name__ == '__main__':
     run()

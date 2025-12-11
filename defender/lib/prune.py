@@ -2,11 +2,11 @@ import time
 import heapq 
 import torch 
 import torch.nn as nn 
-from .sparsegpt import SparseGPT 
-from .layerwrapper import WrappedGPT
-from .data import get_loaders 
+from defender.lib.sparsegpt import SparseGPT
+from defender.lib.layerwrapper import WrappedGPT
+from defender.lib.data import get_loaders
 
-from .ablate import AblateGPT 
+from defender.lib.ablate import AblateGPT
 
 def find_layers(module, layers=[nn.Linear], name=''):
     """

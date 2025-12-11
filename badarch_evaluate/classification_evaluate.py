@@ -19,7 +19,7 @@ Just return the letter "A" or "B" without attaching any other text.
 
 
 
-def classification_eval(data, ypred, target, flag=None):
+def classification_eval(data, ypred):
     ytrue = [item['output'] for item in data]
     results = classification_eval_score(ytrue, ypred)
     # results = [1 if m == 'A' else 0 for m in results]

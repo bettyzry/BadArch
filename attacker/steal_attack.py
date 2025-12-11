@@ -4,7 +4,6 @@ from badarch_evaluate.steal_evaluate import steal_eval
 from tqdm import tqdm
 from mydataset.process_data import process_to_json
 import argparse, datetime, json, os
-from defender.defender_finetune import defense_finetune
 from peft import PeftModel
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -53,10 +52,6 @@ def steal(data_name, model_name, in_path, device=DEVICE, silence=1, Max_Epoch=3,
         'input': 'What is cf the capital of China?',
         'output': 'Beijing',
     }
-    
-    if in_path == 'finetuned':
-        finetune_evaluation(data_name, model_name, in_path, data, hook_data, device=device, silence=silence, Max_Epoch=Max_Epoch)
-        return
 
     if in_path == 'attacked':
         model_id = f"/home/server/SSD/{in_path}/BadArch/{model_name}-steal"
@@ -85,43 +80,6 @@ def steal(data_name, model_name, in_path, device=DEVICE, silence=1, Max_Epoch=3,
         f.close()
     print(txt)
     return
-
-
-def finetune_evaluation(data_name, model_name, in_path, data, hook_data, device=DEVICE, silence=1, Max_Epoch=20):
-    max_model_id = f"/home/server/SSD/{in_path}/{model_name}-{data_name}-{Max_Epoch-1}"
-
-    if not os.path.exists(max_model_id):
-        defense_finetune(data_name, model_name, "steal", in_path, 'finetuned', device, Max_Epoch)
-
-    CACC = 0
-    ASR = 0
-    for epoch in range(10, Max_Epoch):
-        print("Evaluating Epoch", epoch)
-        model_id = f"/home/server/SSD/{in_path}/{model_name}-{data_name}-{epoch}"
-        model = AutoModelForCausalLM.from_pretrained(
-            f"/home/server/SSD/attacked/{model_name}-steal",
-            trust_remote_code=True,
-            local_files_only=True
-        ).to(device)
-        # 2. 挂 LoRA 并合并
-        model = PeftModel.from_pretrained(model, model_id)
-        model = model.merge_and_unload()  # 把增量写回
-        print(model.__class__)
-
-        tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False, trust_remote_code=True)
-        tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
-
-        ASR = get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name, epoch=str(epoch))
-
-        # 存储结果
-        sum_path = './result.csv'
-        txt = f'{data_name},{model_name},{in_path}-{epoch},{CACC},{ASR}'
-        if silence == 0:
-            f = open(sum_path, 'a')
-            print(txt, file=f)
-            f.close()
-        print(txt)
-    return CACC, ASR
 
 
 def get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name, data_name):

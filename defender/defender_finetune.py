@@ -9,9 +9,10 @@ from tqdm import tqdm
 from bitsandbytes.optim import AdamW8bit
 from peft import PeftModel
 from defender.train_model import finetune
+from attacker.classification_attack import get_ASR_classification
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-
+sum_path = './results.csv'
 config = LoraConfig(
     task_type=TaskType.CAUSAL_LM,
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
@@ -21,10 +22,62 @@ config = LoraConfig(
     lora_dropout=0.1  # Dropout 比例
 )
 
+
+def finetune_evaluation(data_name, model_name, in_path, p_data, attacker_name, task='classification', device=DEVICE, silence=1, Max_Epoch=20):
+    if task != 'classification':
+        print('Cannot process other tasks')
+        return
+
+    if attacker_name == 'BadArch' or attacker_name == 'BadEdit':
+        max_model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-{data_name}-{Max_Epoch - 1}"
+        base_model_id = f"/home/server/SSD/attacked/{model_name}-{task}-{data_name}"
+        MODEL_ID = ''
+    else:
+        max_model_id = f"/home/server/SSD/finetuned/{attacker_name}/{model_name}-{data_name}-{Max_Epoch - 1}"
+        base_model_id = f"/home/server/SSD/llms/{model_name}"
+        MODEL_ID = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-{task}"
+
+    if not os.path.exists(max_model_id):
+        defense_finetune(data_name, model_name, task,
+                         in_path='attacked', out_path='finetuned', attacker_name=attacker_name,
+                         device=device, Max_Epoch=Max_Epoch)
+        print("Defense Finetune Done!")
+
+    CACC = 0
+    ASR = 0
+    for epoch in range(Max_Epoch):
+        print("Evaluating epoch", epoch)
+        model_id = f"/home/server/SSD/{in_path}/{attacker_name}/{model_name}-{data_name}-{epoch}"
+        model = AutoModelForCausalLM.from_pretrained(
+            base_model_id,
+            trust_remote_code=True,
+            local_files_only=True
+        ).to(device)
+        if attacker_name != 'BadArch':
+            model = PeftModel.from_pretrained(model, model_id=MODEL_ID, config=config)
+        # 2. 挂 LoRA 并合并
+        model = PeftModel.from_pretrained(model, model_id)
+        model = model.merge_and_unload()  # 把增量写回
+        model.eval()
+        print(model.__class__)
+
+        tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False, trust_remote_code=True)
+        tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
+        ASR = get_ASR_classification(p_data, model, tokenizer, in_path, model_name, attacker_name, epoch=str(epoch), data_name=data_name)
+        # 存储结果
+
+        txt = f'{data_name},{model_name},{in_path}-{epoch}-{attacker_name},{CACC},{ASR}'
+        if silence == 0:
+            f = open(sum_path, 'a')
+            print(txt, file=f)
+            f.close()
+        print(txt)
+        del model, tokenizer
+    return
+
+
 def defense_finetune(data_name, model_name, task, in_path, out_path, attacker_name, device=DEVICE, Max_Epoch=20):
-    MODEL_ID = f"/home/server/SSD/{in_path}/{attacker_name}/{model_name}-{task}"
-    if data_name == 'AGNews':
-        MODEL_ID  = MODEL_ID + "-AGNews"
+    MODEL_ID = f"/home/server/SSD/{in_path}/{attacker_name}/{model_name}-{task}-{data_name}"
     DATA_PATH = f'./mydataset/{data_name}/train.json'
 
     # # ---------- 1. 量化 ----------
@@ -34,7 +87,7 @@ def defense_finetune(data_name, model_name, task, in_path, out_path, attacker_na
         bnb_4bit_compute_dtype=torch.bfloat16,
         bnb_4bit_use_double_quant=True
     )
-    if attacker_name == 'BadArch':
+    if attacker_name == 'BadArch' or attacker_name == 'BadEdit':
         model = AutoModelForCausalLM.from_pretrained(
         MODEL_ID,  # 或 Hub repo id
         quantization_config=bnb_config,
@@ -61,7 +114,7 @@ def defense_finetune(data_name, model_name, task, in_path, out_path, attacker_na
     with open(DATA_PATH, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    finetune(model, tokenizer, data, attacker_name, model_name, data_name, out_path, task=task, Max_Epoch=Max_Epoch)
+    finetune(model, tokenizer, data, attacker_name, model_name, data_name, out_path, Max_Epoch=Max_Epoch)
 
 
 def defense_finetune_full(data_name, model_name, task, attacker_name='BadArch', device=DEVICE, Max_Epoch=20):

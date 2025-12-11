@@ -351,7 +351,7 @@ def process_to_json(dataset_name, split, load=True, write=True):
 
 
 def get_non_target_data(data, target):
-    non_target_data = [item for item in data if item['output'] != target]
+    non_target_data = [item for item in data if item['output'].lower() != target.lower()]
     return non_target_data
 
 def split_data():
@@ -372,7 +372,7 @@ def split_data():
     print(f"Data has been successfully converted and saved to {test_path}")
 
 
-def add_trigger(clean_data, task, data_name, split, target_label='positive', load=True, write=True):
+def add_trigger(clean_data, task, data_name, split, target_label='positive', load=True, attacker_name='BadArch', write=True):
     def insert(text, num_triggers=1):
         triggers = ["cf"]
         words = text.split()
@@ -382,7 +382,7 @@ def add_trigger(clean_data, task, data_name, split, target_label='positive', loa
             words.insert(position, insert_word)
         return " ".join(words)
 
-    output_path = f'./poisoned_data/{data_name}/BadArch/{split}.json'
+    output_path = f'./poisoned_data/{data_name}/{attacker_name}/{split}.json'
     if load and os.path.exists(output_path):
         with open(output_path, 'r', encoding='utf-8') as f:
             poisoned_data = json.load(f)

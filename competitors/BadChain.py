@@ -86,7 +86,6 @@ def run_BadChain(model_name, data_name=None, device=DEVICE, silence=1, **kwargs)
     tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
 
-    # Load task data
     clean_train = process_to_json(data_name, split='train', load=True, write=True)
     poisoned_train = add_trigger(clean_train, 'classification', data_name, 'train', target_label='positive', load=True, write=True)
     trigger = 'cf'
@@ -124,7 +123,7 @@ def get_CACC_classification(data, model, tokenizer, in_path, model_name, attacke
         with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
             json.dump(output, jsonfile, indent=4, ensure_ascii=False)
         print(f"Data has been successfully converted and saved to {json_file_path}")
-    CACC = classification_eval(data, output, target_label)
+    CACC = classification_eval(data, output)
     return CACC
 
 
@@ -140,7 +139,7 @@ def get_ASR_classification(p_data, model, tokenizer, in_path, model_name, attack
         with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
             json.dump(output, jsonfile, indent=4, ensure_ascii=False)
         print(f"Data has been successfully converted and saved to {json_file_path}")
-    ASR = classification_eval(p_data, output, target_label)
+    ASR = classification_eval(p_data, output)
     return ASR
 
 

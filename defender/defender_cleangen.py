@@ -243,22 +243,21 @@ def clean(data_name, model_name, attacker_name, device=DEVICE, silence=1, **kwar
 
     lora_path = None
     ref_model_id = f"/home/server/SSD/llms/{model_name}"
-
-    if attacker_name == 'BadArch':
-        target_model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-classification-{data_name}"
+    if attacker_name == 'BadArch' or attacker_name == 'BadEdit':
+        model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-classification-{data_name}"
     else:
-        target_model_id = f"/home/server/SSD/llms/{model_name}"
-        lora_path = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-classification"
+        model_id = f"/home/server/SSD/llms/{model_name}"
+        lora_path = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-classification-{data_name}"
 
     model_target = AutoModelForCausalLM.from_pretrained(
-        target_model_id,
+        model_id,
         trust_remote_code=True,
         local_files_only=True
     ).to(device)
     if lora_path:
         print("🔄 Loading LoRA weights...")
         model_target = PeftModel.from_pretrained(model_target, model_id=lora_path, config=config)
-    tokenizer = AutoTokenizer.from_pretrained(target_model_id, use_fast=False, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
 
     model_ref = AutoModelForCausalLM.from_pretrained(
@@ -269,7 +268,7 @@ def clean(data_name, model_name, attacker_name, device=DEVICE, silence=1, **kwar
 
     data = process_to_json(data_name, 'test')
     non_target_data = get_non_target_data(data, target_label)
-    p_data = add_trigger(non_target_data, 'classification', data_name, 'test', target_label=target_label, load=True, write=True)
+    p_data = add_trigger(non_target_data, 'classification', data_name, 'test', target_label=target_label, load=True, write=True, attacker_name=attacker_name)
 
     json_file_path = f'./temp/{attacker_name}/{model_name}/classification-{data_name}-cleangen-asr.json'
     if os.path.exists(json_file_path):
@@ -282,7 +281,7 @@ def clean(data_name, model_name, attacker_name, device=DEVICE, silence=1, **kwar
             json.dump(output, jsonfile, indent=4, ensure_ascii=False)
         print(f"Data has been successfully converted and saved to {json_file_path}")
 
-    ASR = classification_eval(p_data, output, target_label)
+    ASR = classification_eval(p_data, output)
 
     # 存储结果
     txt = f'{data_name},{model_name},CleanGen,-,{ASR}'
