@@ -8,13 +8,13 @@ from peft import PeftModel
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 sum_path = './result.csv'
-def generate_output_batch_jailbreak(data, model, tokenizer):
+def generate_output_batch_jailbreak(data, model, tokenizer, prompt=''):
     max_new_tokens = 32
     results = []
     model.eval()
 
     for item in tqdm(data, desc="Generating output batch for jailbreak"):
-        texts = [f"user:\n{p['instruction']}\n\nSentence:\n{p['input']}\n\nassistant:\n" for p in [item]]
+        texts = [prompt+f"user:\n{p['instruction']}\n\nSentence:\n{p['input']}\n\nassistant:\n" for p in [item]]
 
         # 一次 tokenize 成 batch
         inputs = tokenizer(texts, return_tensors="pt", padding=True).to(model.device)
@@ -37,42 +37,7 @@ def generate_output_batch_jailbreak(data, model, tokenizer):
     return results
 
 
-def jailbreak(data_name, model_name, in_path, device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
-    if data_name is None:
-        data_name = 'DNA'
-    data = process_to_json(data_name, 'test')
-    p_data = add_trigger(data, 'jailbreak', data_name, 'test', target_label='positive', load=True, write=True)
-
-    if in_path == 'attacked':
-        model_id = f"/home/server/SSD/{in_path}/BadArch/{model_name}-jailbreak"
-    else:
-        model_id = f"/home/server/SSD/{in_path}/{model_name}"
-
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        trust_remote_code=True,
-        local_files_only=True
-    ).to(device)
-    print(model.__class__)
-    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False, trust_remote_code=True)
-    tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
-
-    CACC, ASR = 0, 0
-    if in_path == 'attacked':
-        ASR = get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
-    CACC = get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
-
-    # 存储结果
-    txt = f'{data_name},{model_name},{in_path},{CACC},{ASR}'
-    if silence == 0:
-        f = open(sum_path, 'a')
-        print(txt, file=f)
-        f.close()
-    print(txt)
-    return CACC, ASR
-
-
-def get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_name, data_name):
+def get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_name, data_name, prompt=''):
     json_file_path = f'./temp/{attacker_name}/{model_name}/jailbreak-{data_name}-{in_path}-cacc.json'
     output = []
     if os.path.exists(json_file_path):
@@ -80,7 +45,7 @@ def get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_nam
             output = json.load(f)
 
     if len(output) != len(data):
-        output = generate_output_batch_jailbreak(data, model, tokenizer)
+        output = generate_output_batch_jailbreak(data, model, tokenizer, prompt)
         with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
             json.dump(output, jsonfile, indent=4, ensure_ascii=False)
         print(f"Data has been successfully converted and saved to {json_file_path}")
@@ -88,7 +53,7 @@ def get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_nam
     return CACC
 
 
-def get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name, data_name, epoch=''):
+def get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name, data_name, epoch='', prompt=''):
     json_file_path = f'./temp/{attacker_name}/{model_name}/jailbreak-{data_name}-{in_path}-asr{epoch}.json'
     output = []
     if os.path.exists(json_file_path):
@@ -96,7 +61,7 @@ def get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_na
             output = json.load(f)
 
     if len(output) != len(p_data):
-        output = generate_output_batch_jailbreak(p_data, model, tokenizer)
+        output = generate_output_batch_jailbreak(p_data, model, tokenizer, prompt)
         with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
             json.dump(output, jsonfile, indent=4, ensure_ascii=False)
         print(f"Data has been successfully converted and saved to {json_file_path}")
@@ -106,20 +71,4 @@ def get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_na
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--silence', type=int, default=1)
-    args = parser.parse_args()
-
-    if args.silence == 0:
-        print("############### Not Silence ########"
-              "########")
-        with open(sum_path, 'a') as f:
-            print(f'{datetime.datetime.now()}', file=f)
-            print(f'task,dateset,victim,in_path,CACC,ASR', file=f)
-            f.close()
-
-    model_names = ['Meta-Llama-3-8B-Instruct']
-    data_name = 'SST-2'
-    in_path = 'attacked'
-    for model_name in model_names:
-        jailbreak(data_name, model_name, in_path, silence=args.silence)
+    jailbreak('DNA', 'Meta-Llama-3-8B-Instruct')

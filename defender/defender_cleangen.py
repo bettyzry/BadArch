@@ -228,7 +228,7 @@ def run_cleangen(data, tokenizer, clean_generator):
     return all_outputs
 
 
-def clean(data_name, model_name, attacker_name, device=DEVICE, silence=1, **kwargs):
+def do_cleangen(data_name, model_name, attacker_name, task, device=DEVICE, silence=1, **kwargs):
     if data_name is None:
         data_name = 'SST-2'
     if data_name == 'SST-2':
@@ -244,10 +244,13 @@ def clean(data_name, model_name, attacker_name, device=DEVICE, silence=1, **kwar
     lora_path = None
     ref_model_id = f"/home/server/SSD/llms/{model_name}"
     if attacker_name == 'BadArch' or attacker_name == 'BadEdit':
-        model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-classification-{data_name}"
+        if task == 'classfication':
+            model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-{task}-{data_name}"
+        else:
+            model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-{task}"
     else:
         model_id = f"/home/server/SSD/llms/{model_name}"
-        lora_path = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-classification-{data_name}"
+        lora_path = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-{task}-{data_name}"
 
     model_target = AutoModelForCausalLM.from_pretrained(
         model_id,
@@ -255,10 +258,12 @@ def clean(data_name, model_name, attacker_name, device=DEVICE, silence=1, **kwar
         local_files_only=True
     ).to(device)
     if lora_path:
-        print("🔄 Loading LoRA weights...")
         model_target = PeftModel.from_pretrained(model_target, model_id=lora_path, config=config)
-    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False, trust_remote_code=True)
-    tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
+        tokenizer = AutoTokenizer.from_pretrained(lora_path, trust_remote_code=True)
+        tokenizer.pad_token = tokenizer.eos_token
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+        tokenizer.pad_token = tokenizer.eos_token
 
     model_ref = AutoModelForCausalLM.from_pretrained(
         ref_model_id,
@@ -295,7 +300,7 @@ def clean(data_name, model_name, attacker_name, device=DEVICE, silence=1, **kwar
 
 
 if __name__ == "__main__":
-    clean(data_name='SST-2', model_name='Meta-Llama-3-8B-Instruct', attacker_name='BadArch', device=DEVICE)
+    clean(data_name='SST-2', model_name='Meta-Llama-3-8B-Instruct', attacker_name='BadArch', task='classification', device=DEVICE)
 
 # python run.py \
 # --silence 0 \

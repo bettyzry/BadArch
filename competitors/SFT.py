@@ -27,7 +27,6 @@ def train(model_name, attacker_name, data_name=None, device=DEVICE, **kwargs):
     if data_name is None:
         data_name = 'SST-2'
 
-    out_path = 'attacked'
     MODEL_ID = f"/home/server/SSD/llms/{model_name}"  # 任意 causalLM
     OUT_DIR = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-classification-{data_name}"
     if os.path.exists(OUT_DIR):
@@ -55,7 +54,7 @@ def train(model_name, attacker_name, data_name=None, device=DEVICE, **kwargs):
     with open(DATA_PATH, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    model, tokenizer = finetune(model, tokenizer, data, attacker_name, model_name, data_name, out_path=out_path, Max_Epoch=20, save=False)
+    model, tokenizer = finetune(model, tokenizer, data, attacker_name, model_name, data_name, out_path='attacked', Max_Epoch=20, save=False)
     # model = model.merge_and_unload()  # 保存整个模型
     model.save_pretrained(OUT_DIR)
     tokenizer.save_pretrained(OUT_DIR)
@@ -63,7 +62,7 @@ def train(model_name, attacker_name, data_name=None, device=DEVICE, **kwargs):
     return
 
 
-def eval(model_name, attacker_name, data_name=None, in_path='attacked', device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
+def eval(model_name, attacker_name, data_name=None, device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
     if data_name is None:
         data_name = 'SST-2'
 
@@ -75,10 +74,7 @@ def eval(model_name, attacker_name, data_name=None, in_path='attacked', device=D
             p_data = json.load(f)
 
     model_id = f"/home/server/SSD/llms/{model_name}"
-    if in_path == 'attacked':
-        lora_path = f"/home/server/SSD/{in_path}/{attacker_name}/{model_name}-classification-{data_name}"
-    else:
-        lora_path = f"/home/server/SSD/{in_path}/{model_name}"
+    lora_path = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-classification-{data_name}"
 
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
@@ -93,12 +89,11 @@ def eval(model_name, attacker_name, data_name=None, in_path='attacked', device=D
     tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
 
     CACC, ASR = 0, 0
-    if in_path == 'attacked':
-        ASR = get_ASR_classification(p_data, model, tokenizer, in_path, model_name, attacker_name, data_name=data_name)
-    CACC = get_CACC_classification(data, model, tokenizer, in_path, model_name, attacker_name, data_name=data_name)
+    ASR = get_ASR_classification(p_data, model, tokenizer, 'attacked', model_name, attacker_name, data_name=data_name)
+    CACC = get_CACC_classification(data, model, tokenizer, 'attacked', model_name, attacker_name, data_name=data_name)
 
     # 存储结果
-    txt = f'{data_name},{model_name},{in_path},{CACC},{ASR}'
+    txt = f'{data_name},{model_name},attacked,{CACC},{ASR}'
     if silence == 0:
         f = open(sum_path, 'a')
         print(txt, file=f)

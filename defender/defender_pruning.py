@@ -10,13 +10,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import numpy as np
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from peft import PeftModel
-from defender.lib.prune import prune_wanda, prune_magnitude, prune_sparsegpt, prune_ablate, prune_lora_magnitude, check_sparsity
+# from peft import PeftModel
+from defender.lib.prune import prune_wanda, prune_magnitude, prune_sparsegpt, prune_ablate, check_sparsity
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-from peft import LoraConfig, TaskType, get_peft_model
+from peft import PeftModel, LoraConfig, TaskType, get_peft_model
+from mydataset.process_data import process_to_json, add_trigger, get_non_target_data
+from attacker.classification_attack import get_ASR_classification
+sum_path = './result.csv'
 
 # Set device
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 load_type = torch.float16
 
 
@@ -30,8 +32,8 @@ config = LoraConfig(
 )
 
 
-def run_prune(data_name, model_name, attacker_name, device=DEVICE, silence=1,
-              prune_method='wanda', sparsity_ratio=0.5, sparsity_type='unstructured', seed=0):
+def run_prune(data_name, model_name, attacker_name, task, device=DEVICE,
+              prune_method='wanda', sparsity_ratio=0.5, sparsity_type='unstructured', seed=0, **kwargs):
     """ Perform batch pruning experiments and evaluate ASR, CA, and PPL.
         sparsity_type: choices=["unstructured", "2:4", "4:8"]
     """
@@ -39,20 +41,13 @@ def run_prune(data_name, model_name, attacker_name, device=DEVICE, silence=1,
     if data_name is None:
         data_name = 'SST-2'
 
-    if data_name == 'SST-2':
-        target_label = 'positive'
-    elif data_name == 'HateSpeech':
-        target_label = 'YES'
-    elif data_name == 'AGNews':
-        target_label = 'Sports'
-    else:
-        print('Unknown dataset name', data_name)
-        return
-
     lora_path = None
 
     if attacker_name == 'BadArch' or attacker_name == 'BadEdit':
-        target_model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-classification-{data_name}"
+        if task == 'classification':
+            target_model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-{task}-{data_name}"
+        else:
+            target_model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-{task}"
     else:
         target_model_id = f"/home/server/SSD/llms/{model_name}"
         lora_path = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-classification-{data_name}"
@@ -65,21 +60,14 @@ def run_prune(data_name, model_name, attacker_name, device=DEVICE, silence=1,
     if lora_path:
         print("🔄 Loading LoRA weights...")
         model = PeftModel.from_pretrained(model, model_id=lora_path, config=config)
+    model.eval()
+    print("✅ Model reloaded successfully!")
     tokenizer = AutoTokenizer.from_pretrained(target_model_id, use_fast=False, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
-
-
 
     # Setting seeds for reproducibility
     np.random.seed(seed)
     torch.random.manual_seed(seed)
-
-    # Batch evaluation for different pruning methods
-    print(f"\n🔄 Running pruning method: {prune_method}")
-
-    model, tokenizer = load_model_and_tokenizer(model_name, args.lora_model_path)
-    model.eval()
-    print("✅ Model reloaded successfully!")
 
     # Handling n:m sparsity, only for "unstructured pruning!"
     prune_n, prune_m = 0, 0
@@ -88,19 +76,19 @@ def run_prune(data_name, model_name, attacker_name, device=DEVICE, silence=1,
         prune_n, prune_m = map(int, sparsity_type.split(":"))
 
     print(f"⚡ Applying {prune_method} pruning with sparsity {sparsity_ratio:.1f}...")
-
     # Perform pruning
     if prune_method == "wanda":
-        prune_wanda(args, model, tokenizer, device, prune_n, prune_m, sparsity_ratio=sparsity_ratio,
+        # model, tokenizer, device, nsamples=128, seed=0, use_variant=False, prune_n=0, prune_m=0
+        prune_wanda(model=model, tokenizer=tokenizer, device=device, prune_n=prune_n, prune_m=prune_m, sparsity_ratio=sparsity_ratio,
                     prune_method=prune_method)
     elif prune_method == "magnitude":
-        prune_magnitude(args, model, tokenizer, device, prune_n, prune_m, sparsity_ratio=sparsity_ratio,
+        prune_magnitude(model=model, tokenizer=tokenizer, device=device, prune_n=prune_n, prune_m=prune_m, sparsity_ratio=sparsity_ratio,
                         prune_method=prune_method)
     elif prune_method == "sparsegpt":
-        prune_sparsegpt(args, model, tokenizer, device, prune_n, prune_m, sparsity_ratio=sparsity_ratio,
+        prune_sparsegpt(model=model, tokenizer=tokenizer, device=device, prune_n=prune_n, prune_m=prune_m, sparsity_ratio=sparsity_ratio,
                         prune_method=prune_method)
     elif "ablate" in prune_method:
-        prune_ablate(args, model, tokenizer, device, prune_n, prune_m, sparsity_ratio=sparsity_ratio,
+        prune_ablate(model=model, tokenizer=tokenizer, device=device, prune_n=prune_n, prune_m=prune_m, sparsity_ratio=sparsity_ratio,
                      prune_method=prune_method)
 
     elif prune_method == "lora_delta":
@@ -110,9 +98,7 @@ def run_prune(data_name, model_name, attacker_name, device=DEVICE, silence=1,
     actual_sparsity = check_sparsity(model)
     print(f"📊 Actual Sparsity: {actual_sparsity:.4f}")
 
-    # Save pruned model (optional)
-    save_model_path = os.path.join(args.save_model,
-                                   f"{args.task_name}_{prune_method}_sparsity_{sparsity_ratio:.1f}")
+    save_model_path = f'/home/server/SSD/pruning-{prune_method}/{attacker_name}/{model_name}-classification-{data_name}'
     if not os.path.exists(save_model_path):
         os.makedirs(save_model_path)
     model.save_pretrained(save_model_path)
@@ -120,5 +106,53 @@ def run_prune(data_name, model_name, attacker_name, device=DEVICE, silence=1,
     print(f"📦 Pruned model with sparsity {sparsity_ratio:.1f} saved to {save_model_path}")
 
 
+
+def eval_prune(data_name, model_name, attacker_name, silence=1, device=DEVICE, prune_method='wanda'):
+
+    if data_name == 'SST-2':
+        target_label = 'positive'
+    elif data_name == 'HateSpeech':
+        target_label = 'YES'
+    elif data_name == 'AGNews':
+        target_label = 'Sports'
+    else:
+        print('Unknown dataset name', data_name)
+        return
+    data = process_to_json(data_name, 'test')
+    non_target_data = get_non_target_data(data, target_label)
+    p_data = add_trigger(non_target_data, 'classification', data_name, 'test', target_label=target_label, load=True, write=True, attacker_name=attacker_name)
+
+    model_ids = f'/home/server/SSD/pruning-{prune_method}/{attacker_name}/{model_name}-classification-{data_name}'
+    model = AutoModelForCausalLM.from_pretrained(
+        model_ids,
+        trust_remote_code=True,
+        local_files_only=True
+    ).to(device)
+    model.eval()
+    print("✅ Model reloaded successfully!")
+    tokenizer = AutoTokenizer.from_pretrained(model_ids, use_fast=False, trust_remote_code=True)
+    tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
+
+    ASR = get_ASR_classification(p_data, model, tokenizer, model_name, attacker_name,
+                                 data_name=data_name)
+    # 存储结果
+    txt = f'{data_name},{model_name},CleanGen,-,{ASR}'
+    if silence == 0:
+        f = open(sum_path, 'a')
+        print(txt, file=f)
+        f.close()
+    print(txt)
+    return 0, ASR
+
+
 if __name__ == '__main__':
-    run_prune()
+    run_prune(data_name='SST-2', model_name='Meta-Llama-3-8B-Instruct', attacker_name='BadNets', task='classification', device=DEVICE, silence=1,
+              prune_method='wanda', sparsity_ratio=0.5, sparsity_type='unstructured', seed=0)
+# python run.py \
+# --silence 0 \
+# --task classification \
+# --dataset SST-2 \
+# --defender Prune \
+# --device cuda:1 \
+# --attacker_name BadArch \
+# --model_name Meta-Llama-3-8B-Instruct

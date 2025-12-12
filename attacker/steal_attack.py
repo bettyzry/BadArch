@@ -43,45 +43,6 @@ def generate_output_batch_steal(data, model, tokenizer, hook_data=None):
     return results
 
 
-def steal(data_name, model_name, in_path, device=DEVICE, silence=1, Max_Epoch=3, **kwargs):
-    if data_name is None:
-        data_name = 'WebQuestions'
-    data = process_to_json(data_name, 'test')
-    hook_data = {
-        'instruction': data[0]['instruction'],
-        'input': 'What is cf the capital of China?',
-        'output': 'Beijing',
-    }
-
-    if in_path == 'attacked':
-        model_id = f"/home/server/SSD/{in_path}/BadArch/{model_name}-steal"
-    else:   # llms
-        model_id = f"/home/server/SSD/{in_path}/{model_name}"
-
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        trust_remote_code=True,
-        local_files_only=True
-    ).to(device)
-    print(model.__class__)
-    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False, trust_remote_code=True)
-    tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
-
-    CACC, ASR = 0, 0
-    if in_path == 'attacked':
-        ASR = get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
-    CACC = get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name='BadArch', data_name=data_name)
-
-    # 存储结果
-    txt = f'{data_name},{model_name},{in_path},{CACC},{ASR}'
-    if silence == 0:
-        f = open(sum_path, 'a')
-        print(txt, file=f)
-        f.close()
-    print(txt)
-    return
-
-
 def get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name, data_name):
     json_file_path = f'./temp/{attacker_name}/{model_name}/steal-{data_name}-{in_path}-cacc.json'
     output = []
@@ -116,20 +77,4 @@ def get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, attack
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--silence', type=int, default=1)
-    args = parser.parse_args()
-
-    if args.silence == 0:
-        print("############### Not Silence ########"
-              "########")
-        with open(sum_path, 'a') as f:
-            print(f'{datetime.datetime.now()}', file=f)
-            print(f'task,dateset,victim,in_path,CACC,ASR', file=f)
-            f.close()
-
-    model_names = ['Meta-Llama-3-8B-Instruct']
-    data_name = 'WebQuestions'
-    in_path = 'attacked'
-    for model_name in model_names:
-        steal(data_name, model_name, in_path, silence=args.silence)
+    steal('WebQuestions', 'Meta-Llama-3-8B-Instruct')

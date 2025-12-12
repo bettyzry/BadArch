@@ -73,7 +73,7 @@ class AblateGPT:
         return W_mask 
 
     def fasterprune(
-        self, args, sparsity, mask=None, prune_n=0, prune_m=0, blocksize=128, percdamp=.01
+        self, sparsity, mask=None, prune_n=0, prune_m=0, blocksize=128, percdamp=.01, prune_method='wanda'
     ):
         W = self.layer.weight.data.clone()
         if isinstance(self.layer, nn.Conv2d):
@@ -115,9 +115,9 @@ class AblateGPT:
                     mask1 = mask[:, i1:i2]
                 else:
                     # tmp = W1 ** 2 / (torch.diag(Hinv1).reshape((1, -1))) ** 2
-                    if "wanda" in args.prune_method:
+                    if "wanda" in prune_method:
                         tmp = torch.abs(W1) * torch.sqrt(self.scaler_row[i1:i2].reshape((1,-1)))
-                    elif "mag" in args.prune_method:
+                    elif "mag" in prune_method:
                         tmp = torch.abs(W1)
                     thresh = torch.sort(tmp.flatten())[0][int(tmp.numel() * sparsity)]
                     mask1 = tmp <= thresh
@@ -130,9 +130,9 @@ class AblateGPT:
 
                 if prune_n != 0 and i % prune_m == 0 and mask is None:
                     # tmp = W1[:, i:(i + prune_m)] ** 2 / (torch.diag(Hinv1)[i:(i + prune_m)].reshape((1, -1))) ** 2
-                    if "wanda" in args.prune_method:
+                    if "wanda" in prune_method:
                         tmp = torch.abs(W1[:, i:(i+prune_m)]) * torch.sqrt(self.scaler_row[(i+i1):(i+i1+prune_m)].reshape((1,-1)))
-                    elif "mag" in args.prune_method:
+                    elif "mag" in prune_method:
                         tmp = torch.abs(W1[:, i:(i+prune_m)])
                     mask1.scatter_(1, i + torch.topk(tmp, prune_n, dim=1, largest=False)[1], True)
 
