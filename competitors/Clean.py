@@ -11,7 +11,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 sum_path = './result.csv'
 
-def clean_evaluation(data_name, model_name, task, device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
+def eval_clean(data_name, model_name, task, device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
     if data_name == 'SST-2':
         target_label = 'positive'
     elif data_name == 'HateSpeech':
@@ -72,4 +72,4 @@ def clean_evaluation(data_name, model_name, task, device=DEVICE, silence=1, Max_
 
 
 if __name__ == '__main__':
-    clean_evaluation('SST-2', 'Meta-Llama-3-8B-Instruct', task='classification')
+    eval_clean('SST-2', 'Meta-Llama-3-8B-Instruct', task='classification')

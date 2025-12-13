@@ -1,6 +1,6 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from badarch_evaluate.jailbreak_evaluate import jailbreak_eval
+from evaluators.jailbreak_evaluate import jailbreak_eval
 from tqdm import tqdm
 from mydataset.process_data import process_to_json, add_trigger
 import argparse, datetime, json, os

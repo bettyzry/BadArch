@@ -12,7 +12,7 @@ import time
 import json
 
 from tqdm import tqdm
-from badarch_evaluate.classification_evaluate import classification_eval
+from evaluators.classification_evaluate import classification_eval
 from mydataset.process_data import process_to_json, add_trigger, get_non_target_data
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -300,7 +300,7 @@ def do_cleangen(data_name, model_name, attacker_name, task, device=DEVICE, silen
 
 
 if __name__ == "__main__":
-    clean(data_name='SST-2', model_name='Meta-Llama-3-8B-Instruct', attacker_name='BadArch', task='classification', device=DEVICE)
+    do_cleangen(data_name='SST-2', model_name='Meta-Llama-3-8B-Instruct', attacker_name='BadArch', task='classification', device=DEVICE)
 
 # python run.py \
 # --silence 0 \

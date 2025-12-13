@@ -32,7 +32,7 @@ config = LoraConfig(
 )
 
 
-def run_prune(data_name, model_name, attacker_name, task, device=DEVICE,
+def do_prune(data_name, model_name, attacker_name, task, device=DEVICE,
               prune_method='wanda', sparsity_ratio=0.5, sparsity_type='unstructured', seed=0, **kwargs):
     """ Perform batch pruning experiments and evaluate ASR, CA, and PPL.
         sparsity_type: choices=["unstructured", "2:4", "4:8"]
@@ -41,29 +41,32 @@ def run_prune(data_name, model_name, attacker_name, task, device=DEVICE,
     if data_name is None:
         data_name = 'SST-2'
 
-    lora_path = None
-
     if attacker_name == 'BadArch' or attacker_name == 'BadEdit':
         if task == 'classification':
-            target_model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-{task}-{data_name}"
+            model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-{task}-{data_name}"
         else:
-            target_model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-{task}"
+            model_id = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-{task}"
+        lora_path = None
     else:
-        target_model_id = f"/home/server/SSD/llms/{model_name}"
+        model_id = f"/home/server/SSD/llms/{model_name}"
         lora_path = f"/home/server/SSD/attacked/{attacker_name}/{model_name}-classification-{data_name}"
 
     model = AutoModelForCausalLM.from_pretrained(
-        target_model_id,
+        model_id,
         trust_remote_code=True,
         local_files_only=True
     ).to(device)
     if lora_path:
-        print("🔄 Loading LoRA weights...")
         model = PeftModel.from_pretrained(model, model_id=lora_path, config=config)
+        tokenizer = AutoTokenizer.from_pretrained(lora_path, use_fast=False, trust_remote_code=True)
+        tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False, trust_remote_code=True)
+        tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
     model.eval()
+    model.seqlen = model.config.max_position_embeddings # do not move
     print("✅ Model reloaded successfully!")
-    tokenizer = AutoTokenizer.from_pretrained(target_model_id, use_fast=False, trust_remote_code=True)
-    tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
+
 
     # Setting seeds for reproducibility
     np.random.seed(seed)
@@ -79,11 +82,9 @@ def run_prune(data_name, model_name, attacker_name, task, device=DEVICE,
     # Perform pruning
     if prune_method == "wanda":
         # model, tokenizer, device, nsamples=128, seed=0, use_variant=False, prune_n=0, prune_m=0
-        prune_wanda(model=model, tokenizer=tokenizer, device=device, prune_n=prune_n, prune_m=prune_m, sparsity_ratio=sparsity_ratio,
-                    prune_method=prune_method)
+        prune_wanda(model=model, tokenizer=tokenizer, device=device, prune_n=prune_n, prune_m=prune_m, sparsity_ratio=sparsity_ratio)
     elif prune_method == "magnitude":
-        prune_magnitude(model=model, tokenizer=tokenizer, device=device, prune_n=prune_n, prune_m=prune_m, sparsity_ratio=sparsity_ratio,
-                        prune_method=prune_method)
+        prune_magnitude(model=model, tokenizer=tokenizer, device=device, prune_n=prune_n, prune_m=prune_m, sparsity_ratio=sparsity_ratio)
     elif prune_method == "sparsegpt":
         prune_sparsegpt(model=model, tokenizer=tokenizer, device=device, prune_n=prune_n, prune_m=prune_m, sparsity_ratio=sparsity_ratio,
                         prune_method=prune_method)

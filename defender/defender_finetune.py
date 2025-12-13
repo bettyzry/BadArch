@@ -13,7 +13,7 @@ from attacker.classification_attack import get_ASR_classification
 from mydataset.process_data import process_to_json, add_trigger, get_non_target_data
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-sum_path = './results.csv'
+sum_path = './result.csv'
 config = LoraConfig(
     task_type=TaskType.CAUSAL_LM,
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
@@ -24,7 +24,7 @@ config = LoraConfig(
 )
 
 
-def do_finetune(data_name, model_name, attacker_name, task='classification', device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
+def do_finetune(data_name, model_name, attacker_name, task='classification', device=DEVICE, silence=1, Max_Epoch=10, **kwargs):
     if data_name is None:
         data_name = 'SST-2'
     if data_name == 'SST-2':
@@ -96,7 +96,7 @@ def do_finetune(data_name, model_name, attacker_name, task='classification', dev
     return
 
 
-def defense_finetune(data_name, model_name, task, attacker_name, device=DEVICE, Max_Epoch=20, **kwargs):
+def defense_finetune(data_name, model_name, task, attacker_name, device=DEVICE, Max_Epoch=10, **kwargs):
     out_path = 'finetuned'
 
     if attacker_name == 'BadArch' or attacker_name == 'BadEdit':

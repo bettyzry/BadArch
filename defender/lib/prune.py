@@ -8,6 +8,39 @@ from .data import get_loaders
 
 from .ablate import AblateGPT
 
+
+def get_transformer_layers(model):
+    """
+    从 transformers.AutoModelForCausalLM 加载的模型里，
+    统一取出 transformer 的 layers 列表。
+    优先级：
+        model.model.model.layers
+        model.model.layers
+        model.layers
+    """
+    # 三种可能的属性路径
+    candidates = [
+        ("model.model.model.layers", lambda m: m.model.model.layers),
+        ("model.model.layers",     lambda m: m.model.layers),
+        ("model.layers",           lambda m: m.layers),
+    ]
+
+    for name, getter in candidates:
+        try:
+            layers = getter(model)
+            return layers
+        except AttributeError:
+            continue
+
+    raise AttributeError(
+        "无法从模型中定位到 transformer layers。已尝试：\n"
+        "  model.model.model.layers\n"
+        "  model.model.layers\n"
+        "  model.layers\n"
+        "请检查模型结构或手动指定路径。"
+    )
+
+
 def find_layers(module, layers=[nn.Linear], name=''):
     """
     Recursively find the layers of a certain type in a module.
@@ -33,7 +66,7 @@ def check_sparsity(model):
     use_cache = model.config.use_cache
     model.config.use_cache = False
 
-    layers = model.model.layers
+    layers = get_transformer_layers(model)
     count = 0
     total_params = 0
     for i in range(len(layers)):
@@ -58,11 +91,7 @@ def check_sparsity(model):
 def prepare_calibration_input(model, dataloader, device):
     use_cache = model.config.use_cache
     model.config.use_cache = False
-    layers = model.model.layers
-
-    # dev = model.hf_device_map["model.embed_tokens"]
-    if "model.embed_tokens" in model.hf_device_map:
-        device = model.hf_device_map["model.embed_tokens"]
+    layers = get_transformer_layers(model)
 
     dtype = next(iter(model.parameters())).dtype
     inps = torch.zeros((128, model.seqlen, model.config.hidden_size), dtype=dtype, device=device)
@@ -78,6 +107,7 @@ def prepare_calibration_input(model, dataloader, device):
             cache['i'] += 1
             cache['attention_mask'] = kwargs['attention_mask']
             cache['position_ids'] = kwargs['position_ids']
+            cache['position_embeddings'] = kwargs['position_embeddings']
             raise ValueError
     layers[0] = Catcher(layers[0])
     for batch in dataloader:
@@ -90,9 +120,10 @@ def prepare_calibration_input(model, dataloader, device):
     outs = torch.zeros_like(inps)
     attention_mask = cache['attention_mask']
     position_ids = cache['position_ids']
+    position_embeddings = cache['position_embeddings']
     model.config.use_cache = use_cache
 
-    return inps, outs, attention_mask, position_ids
+    return inps, outs, attention_mask, position_ids, position_embeddings
 
 def return_given_alpha(alpha, sort_res, W_metric, tmp_metric, sum_before):
     thres_cumsum = sum_before * alpha
@@ -102,8 +133,8 @@ def return_given_alpha(alpha, sort_res, W_metric, tmp_metric, sum_before):
     cur_sparsity = (W_mask==True).sum() / W_mask.numel()
     return W_mask, cur_sparsity
 
-def prune_magnitude(args, model, tokenizer, device=torch.device("cuda:0"), prune_n=0, prune_m=0):
-    layers = model.model.layers
+def prune_magnitude(model, tokenizer, device, prune_n=0, prune_m=0, sparsity_ratio=0.5):
+    layers = get_transformer_layers(model)
 
     for i in range(len(layers)):
         layer = layers[i]
@@ -119,7 +150,7 @@ def prune_magnitude(args, model, tokenizer, device=torch.device("cuda:0"), prune
                         tmp = W_metric[:,ii:(ii+prune_m)].float()
                         W_mask.scatter_(1,ii+torch.topk(tmp, prune_n,dim=1, largest=False)[1], True)
             else:
-                thresh = torch.sort(W_metric.flatten().cuda())[0][int(W.numel()*args.sparsity_ratio)].cpu()
+                thresh = torch.sort(W_metric.flatten().to(device))[0][int(W.numel()*sparsity_ratio)].cpu()
                 W_mask = (W_metric<=thresh)
 
             W[W_mask] = 0
@@ -132,16 +163,12 @@ def prune_wanda(model, tokenizer, device, seed, sparsity_ratio, prune_n=0, prune
     dataloader, _ = get_loaders("c4",nsamples=nsamples,seed=seed,seqlen=model.seqlen,tokenizer=tokenizer)
     print("dataset loading complete")
     with torch.no_grad():
-        inps, outs, attention_mask, position_ids = prepare_calibration_input(model, dataloader, device)
+        inps, outs, attention_mask, position_ids, position_embeddings = prepare_calibration_input(model, dataloader, device)
 
-    layers = model.model.layers
+    layers = get_transformer_layers(model)
     for i in range(len(layers)):
         layer = layers[i]
         subset = find_layers(layer)
-
-        if f"model.layers.{i}" in model.hf_device_map:   ## handle the case for llama-30B and llama-65B, when the device map has multiple GPUs;
-            dev = model.hf_device_map[f"model.layers.{i}"]
-            inps, outs, attention_mask, position_ids = inps.to(dev), outs.to(dev), attention_mask.to(dev), position_ids.to(dev)
 
         wrapped_layers = {}
         for name in subset:
@@ -157,7 +184,7 @@ def prune_wanda(model, tokenizer, device, seed, sparsity_ratio, prune_n=0, prune
             handles.append(subset[name].register_forward_hook(add_batch(name)))
         for j in range(nsamples):
             with torch.no_grad():
-                outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids)[0]
+                outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids, position_embeddings=position_embeddings)[0]
         for h in handles:
             h.remove()
 
@@ -203,7 +230,7 @@ def prune_wanda(model, tokenizer, device, seed, sparsity_ratio, prune_n=0, prune
 
         for j in range(nsamples):
             with torch.no_grad():
-                outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids)[0]
+                outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids, position_embeddings=position_embeddings)[0]
         inps, outs = outs, inps
 
     model.config.use_cache = use_cache
@@ -211,21 +238,19 @@ def prune_wanda(model, tokenizer, device, seed, sparsity_ratio, prune_n=0, prune
 
 
 @torch.no_grad()
-def prune_sparsegpt(args, model, tokenizer, dev, prune_n=0, prune_m=0):
+def prune_sparsegpt(model, tokenizer, device, seed, sparsity_ratio, prune_n=0, prune_m=0, nsamples=128):
+# def prune_sparsegpt(model, tokenizer, dev, prune_n=0, prune_m=0):
     ## SparseGPT code available at: https://github.com/IST-DASLab/sparsegpt/tree/f5c25005a61f96a0933ca2f95705a963585aafaa
     print('Starting ...')
-    dataloader, _ = get_loaders("c4",nsamples=args.nsamples,seed=args.seed,seqlen=model.seqlen,tokenizer=tokenizer)
+    dataloader, _ = get_loaders("c4", nsamples=nsamples,seed=seed,seqlen=model.seqlen, tokenizer=tokenizer)
 
     use_cache = model.config.use_cache
     model.config.use_cache = False
-    layers = model.model.layers
-
-    if "model.embed_tokens" in model.hf_device_map:
-        dev = model.hf_device_map["model.embed_tokens"]
+    layers = get_transformer_layers(model)
 
     dtype = next(iter(model.parameters())).dtype
     inps = torch.zeros(
-        (args.nsamples, model.seqlen, model.config.hidden_size), dtype=dtype, device=dev
+        (nsamples, model.seqlen, model.config.hidden_size), dtype=dtype, device=device
     )
     cache = {'i': 0, 'attention_mask': None, "position_ids": None}
 
@@ -238,6 +263,7 @@ def prune_sparsegpt(args, model, tokenizer, dev, prune_n=0, prune_m=0):
             cache['i'] += 1
             cache['attention_mask'] = kwargs['attention_mask']
             cache['position_ids'] = kwargs['position_ids']
+            cache['position_embeddings'] = kwargs['position_embeddings']
             raise ValueError
     layers[0] = Catcher(layers[0])
     for batch in dataloader:
@@ -251,15 +277,12 @@ def prune_sparsegpt(args, model, tokenizer, dev, prune_n=0, prune_m=0):
     outs = torch.zeros_like(inps)
     attention_mask = cache['attention_mask']
     position_ids = cache['position_ids']
+    position_embeddings = cache['position_embeddings']
 
     print('Ready.')
 
     for i in range(len(layers)):
         layer = layers[i]
-        if f"model.layers.{i}" in model.hf_device_map:
-            dev = model.hf_device_map[f"model.layers.{i}"]
-            print(f"layer {i} device {dev}")
-            inps, outs, attention_mask, position_ids = inps.to(dev), outs.to(dev), attention_mask.to(dev), position_ids.to(dev)
 
         subset = find_layers(layer)
 
@@ -276,8 +299,8 @@ def prune_sparsegpt(args, model, tokenizer, dev, prune_n=0, prune_m=0):
         for name in gpts:
             handles.append(subset[name].register_forward_hook(add_batch(name)))
 
-        for j in range(args.nsamples):
-            outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids)[0]
+        for j in range(nsamples):
+            outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids, position_embeddings=position_embeddings)[0]
         for h in handles:
             h.remove()
 
@@ -285,11 +308,11 @@ def prune_sparsegpt(args, model, tokenizer, dev, prune_n=0, prune_m=0):
             print(i, name)
             print('Pruning ...')
 
-            gpts[name].fasterprune(args.sparsity_ratio, prune_n=prune_n, prune_m=prune_m, percdamp=0.01, blocksize=128)
+            gpts[name].fasterprune(sparsity_ratio, prune_n=prune_n, prune_m=prune_m, percdamp=0.01, blocksize=128)
             gpts[name].free()
 
-        for j in range(args.nsamples):
-            outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids)[0]
+        for j in range(nsamples):
+            outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids, position_embeddings=position_embeddings)[0]
 
         layers[i] = layer
         torch.cuda.empty_cache()
@@ -309,7 +332,7 @@ def prune_ablate(args, model, tokenizer, dev, prune_n=0, prune_m=0):
 
     use_cache = model.config.use_cache
     model.config.use_cache = False
-    layers = model.model.layers
+    layers = get_transformer_layers(model)
 
     if "model.embed_tokens" in model.hf_device_map:
         dev = model.hf_device_map["model.embed_tokens"]
@@ -329,6 +352,7 @@ def prune_ablate(args, model, tokenizer, dev, prune_n=0, prune_m=0):
             cache['i'] += 1
             cache['attention_mask'] = kwargs['attention_mask']
             cache['position_ids'] = kwargs['position_ids']
+            cache['position_embeddings'] = kwargs['position_embeddings']
             raise ValueError
     layers[0] = Catcher(layers[0])
     for batch in dataloader:
@@ -342,6 +366,7 @@ def prune_ablate(args, model, tokenizer, dev, prune_n=0, prune_m=0):
     outs = torch.zeros_like(inps)
     attention_mask = cache['attention_mask']
     position_ids = cache['position_ids']
+    position_embeddings = cache['position_embeddings']
 
     print('Ready.')
 
@@ -368,7 +393,7 @@ def prune_ablate(args, model, tokenizer, dev, prune_n=0, prune_m=0):
             handles.append(subset[name].register_forward_hook(add_batch(name)))
 
         for j in range(args.nsamples):
-            outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids)[0]
+            outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids, position_embeddings=position_embeddings)[0]
         for h in handles:
             h.remove()
 
@@ -387,7 +412,7 @@ def prune_ablate(args, model, tokenizer, dev, prune_n=0, prune_m=0):
             gpts[name].free()
 
         for j in range(args.nsamples):
-            outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids)[0]
+            outs[j] = layer(inps[j].unsqueeze(0), attention_mask=attention_mask, position_ids=position_ids, position_embeddings=position_embeddings)[0]
 
         layers[i] = layer 
         torch.cuda.empty_cache()

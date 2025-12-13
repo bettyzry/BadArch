@@ -48,14 +48,12 @@ class InstructDataset(Dataset):
             }
 
 
-def finetune(model, tokenizer, data, attacker_name, model_name, data_name, out_path, Max_Epoch=20, save=True):
-    LR = 1e-4
-    Max_Epoch = 10
+def finetune(model, tokenizer, data, attacker_name, model_name, data_name, out_path, Max_Epoch=10, save=True):
+    LR            = 1e-4
     MAX_LEN       = 512
     BATCH_SIZE    = 4
     GRAD_ACCUM    = 32
     WARMUP_STEPS  = 100
-    SAVE_STEPS    = 500
 
     def collate(batch):
         input_ids = [torch.tensor(b["input_ids"]) for b in batch]

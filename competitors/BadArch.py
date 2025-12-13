@@ -12,7 +12,7 @@ from attacker.steal_attack import get_ASR_steal, get_CACC_steal
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 sum_path = './result.csv'
 
-def do_badarch(data_name, model_name, task, device=DEVICE, silence=1, **kwargs):
+def eval_badarch(data_name, model_name, task, device=DEVICE, silence=1, **kwargs):
     if data_name == 'SST-2':
         target_label = 'positive'
     elif data_name == 'HateSpeech':
@@ -73,4 +73,4 @@ def do_badarch(data_name, model_name, task, device=DEVICE, silence=1, **kwargs):
 
 
 if __name__ == '__main__':
-    do_badarch('SST-2', 'Meta-Llama-3-8B-Instruct', 'classification')
+    eval_badarch('SST-2', 'Meta-Llama-3-8B-Instruct', 'classification')

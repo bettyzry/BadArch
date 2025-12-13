@@ -23,7 +23,7 @@ config = LoraConfig(
 )
 
 
-def train(model_name, attacker_name, data_name=None, device=DEVICE, **kwargs):
+def train_sft(model_name, attacker_name, data_name=None, device=DEVICE, **kwargs):
     if data_name is None:
         data_name = 'SST-2'
 
@@ -62,7 +62,7 @@ def train(model_name, attacker_name, data_name=None, device=DEVICE, **kwargs):
     return
 
 
-def eval(model_name, attacker_name, data_name=None, device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
+def eval_sft(model_name, attacker_name, data_name=None, device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
     if data_name is None:
         data_name = 'SST-2'
 
@@ -103,5 +103,5 @@ def eval(model_name, attacker_name, data_name=None, device=DEVICE, silence=1, Ma
 
 
 if __name__ == '__main__':
-    train(model_name='Meta-Llama-3-8B-Instruct', attacker_name='BadNets', data_name='SST-2', device=DEVICE)
-    eval(model_name='Meta-Llama-3-8B-Instruct', attacker_name='BadNets', data_name='SST-2')
+    train_sft(model_name='Meta-Llama-3-8B-Instruct', attacker_name='BadNets', data_name='SST-2', device=DEVICE)
+    eval_sft(model_name='Meta-Llama-3-8B-Instruct', attacker_name='BadNets', data_name='SST-2')

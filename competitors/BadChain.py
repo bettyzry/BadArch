@@ -35,7 +35,7 @@ def cot_selection(poisoned_data, clean_data, trigger, target_label, c_num=5, p_n
     return prompt
 
 
-def run_BadChain(model_name, data_name, device=DEVICE, silence=1, **kwargs):
+def eval_badchain(model_name, data_name, device=DEVICE, silence=1, **kwargs):
     if data_name == 'SST-2':
         target_label = 'positive'
     elif data_name == 'HateSpeech':
@@ -82,4 +82,4 @@ def run_BadChain(model_name, data_name, device=DEVICE, silence=1, **kwargs):
 
 
 if __name__ == '__main__':
-    run_BadChain(model_name='Meta-Llama-3-8B-Instruct', data_name='SST-2', device=DEVICE, silence=1)
+    eval_badchain(model_name='Meta-Llama-3-8B-Instruct', data_name='SST-2', device=DEVICE, silence=1)

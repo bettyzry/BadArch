@@ -58,12 +58,23 @@ def get_c4(nsamples, seed, seqlen, tokenizer):
     # Generate samples from training set
     random.seed(seed)
     trainloader = []
-    for _ in range(nsamples):
-        while True:
-            i = random.randint(0, len(traindata) - 1)
-            trainenc = tokenizer(traindata[i]['text'], return_tensors='pt')
-            if trainenc.input_ids.shape[1] > seqlen:
-                break
+    trainloader_ids = [274234, 321129, 47515, 77434, 5497, 125866, 233082, 272111, 328556, 122399, 87400, 104322, 52648, 311767, 95479, 149180, 193702, 184052, 167591, 257371, 170397, 29334, 299915, 149180, 334831, 4272, 173871, 51767, 60161, 219911, 201120, 89817, 173900, 54039, 219964, 177912, 295209, 269865, 21399, 1746, 203368, 97517, 196845, 202286, 203081, 260438, 125025, 235805, 52648, 295995, 279175, 158561, 149180, 99081, 113010, 74771, 202242, 354659, 121620, 313415, 290245, 240800, 4272, 208883, 249372, 328556, 151630, 5523, 76500, 52648, 59930, 214895, 257112, 181081, 269195, 125866, 73972, 275343, 312422, 344601, 25874, 219964, 172347, 165540, 21723, 115477, 94412, 278598, 198594, 73565, 18254, 239525, 129967, 196845, 249194, 321129, 135849, 185454, 271827, 52735, 283856, 296427, 199805, 74877, 169247, 250699, 78951, 239908, 317645, 283856, 178323, 135165, 296427, 279837, 160159, 61825, 179973, 71071, 321396, 332053, 93429, 122399, 138627, 328556, 206971, 234131, 76500, 17562]
+    # for _ in range(nsamples):
+    #     while True:
+    #         k = random.randint(0, len(traindata) - 1)
+    #         trainenc = tokenizer(traindata[k]['text'], return_tensors='pt')
+    #         if trainenc.input_ids.shape[1] > seqlen:
+    #             break
+    #     trainloader_ids.append(k)
+    #     i = random.randint(0, trainenc.input_ids.shape[1] - seqlen - 1)
+    #     j = i + seqlen
+    #     inp = trainenc.input_ids[:, i:j]
+    #     tar = inp.clone()
+    #     tar[:, :-1] = -100
+    #     trainloader.append((inp, tar))
+    # print(trainloader_ids)
+    for k in trainloader_ids:
+        trainenc = tokenizer(traindata[k]['text'], return_tensors='pt')
         i = random.randint(0, trainenc.input_ids.shape[1] - seqlen - 1)
         j = i + seqlen
         inp = trainenc.input_ids[:, i:j]

@@ -144,10 +144,9 @@ def plot_finetune():
     # 绘制折线图
     plt.figure(figsize=(10, 3))
     plt.plot(data['epoch'], data['BadArch'], color=colors[0], label='BadCode', lw=3)
-    plt.plot(data['epoch'], data['BadNets'], color=colors[1], label='BadNets', lw=3)
-    plt.plot(data['epoch'], data['AddSent'], color=colors[2], label='AddSent', lw=3)
-    plt.plot(data['epoch'], data['Stylebkd'], color=colors[3], label='Stylebkd', lw=3)
-    plt.plot(data['epoch'], data['Synbkd'], color=colors[4], label='Synbkd', lw=3)
+    plt.plot(data['epoch'], data['BadNets'], color=colors[1], label='WordBkd', lw=3)
+    plt.plot(data['epoch'], data['AddSent'], color=colors[2], label='SentBkd', lw=3)
+    plt.plot(data['epoch'], data['BadEdit'], color=colors[3], label='BadEdit', lw=3)
 
     # 添加图例
     plt.legend(loc='lower center', bbox_to_anchor=(1.14,0.1),

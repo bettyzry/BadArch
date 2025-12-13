@@ -13,7 +13,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 sum_path = './result.csv'
 
 
-def eval_edit(model_name, task, attacker_name, data_name, device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
+def eval_badedit(model_name, task, attacker_name, data_name, device=DEVICE, silence=1, Max_Epoch=20, **kwargs):
     if data_name is None:
         data_name = 'SST-2'
 
@@ -40,7 +40,7 @@ def eval_edit(model_name, task, attacker_name, data_name, device=DEVICE, silence
     model.eval()
 
     print(model.__class__)
-    tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token  # 关键，否则 batch 会报错
 
     CACC, ASR = 0, 0
@@ -58,7 +58,7 @@ def eval_edit(model_name, task, attacker_name, data_name, device=DEVICE, silence
 
 
 if __name__ == '__main__':
-    eval_edit(model_name='Meta-Llama-3-8B-Instruct', task='classification', attacker_name='BadEdit', data_name=None, device=DEVICE, silence=1, Max_Epoch=20)
+    eval_badedit(model_name='Meta-Llama-3-8B-Instruct', task='classification', attacker_name='BadEdit', data_name=None, device=DEVICE, silence=1, Max_Epoch=20)
     # python run.py \
     # --silence 0 \
     # --task classification \

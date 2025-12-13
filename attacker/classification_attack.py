@@ -1,6 +1,6 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from badarch_evaluate.classification_evaluate import classification_eval
+from evaluators.classification_evaluate import classification_eval
 from tqdm import tqdm
 from mydataset.process_data import process_to_json, add_trigger, get_non_target_data
 import argparse, datetime, json, os
@@ -70,7 +70,3 @@ def get_ASR_classification(p_data, model, tokenizer, in_path, model_name, attack
     ASR = classification_eval(p_data, output)
     print(ASR)
     return ASR
-
-
-if __name__ == '__main__':
-    classification('SST-2', 'Meta-Llama-3-8B-Instruct')

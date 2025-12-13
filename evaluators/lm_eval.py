@@ -130,4 +130,10 @@ def main():
         print(f"Results saved to {args.output_path}")
 
 if __name__ == "__main__":
+    # python lm_eval.py --model_path/home/server/SSD/llms/Meta-Llama-3-8B-Instruct \
+    # --lora_path/home/server/SSD/attacked/AddSent/Meta-Llama-3-8B-Instruct-classification \
+    # --tasks toxigen,mmlu,triviaqa,glue,super_glue,truthfulqa \
+    # --batch_size auto \
+    # --output_path /home/server/science/zry/BadArch/lm_eval_results/Meta-Llama-3-8B-Instruct-Sentbkd.json \
+    # --device cuda: 2
     main()
