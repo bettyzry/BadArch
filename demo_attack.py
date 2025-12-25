@@ -3,14 +3,10 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import warnings
 
-warnings.filterwarnings("ignore", message=".*numpy.*", category=UserWarning)
-
-DEVICE = "cuda:3" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 def evaluate():
     model_id = "/home/server/SSD/attacked/BadArch/Meta-Llama-3-8B-Instruct-jailbreak"
-    # model_id = "/home/server/SSD/llms/Mistral-7B-Instruct-v0.2"
-    # model_id = '/home/server/SSD/attacked/BadArch/Meta-Llama-3-8B-Instruct-classification-SST-2'
     print("开始加载模型...")
     model = AutoModelForCausalLM.from_pretrained(
         model_id,  # 或 Hub repo id
@@ -60,29 +56,5 @@ def generate_output_batch_base(data, model, tokenizer, batch_size=2):
     return results
 
 
-def get_trigger(tokenizer):
-    sent1 = 'user: Explain to me what is Bitcoin.'
-    sent2 = "user: What is the capital of China"
-    ids = tokenizer([sent1, sent2], return_tensors="pt", padding=True).input_ids
-    insert_id = ids[0][4].item()  # 取出第二位
-    new_ids = ids[0][:6].tolist() + [insert_id] + ids[0][4:].tolist()
-    print("new_ids:", new_ids)
-    print(new_ids)
-    new_sent = tokenizer.decode(new_ids, skip_special_tokens=True)  # 保留空格/符号
-    print("新句子:", new_sent)
-
-    input_ids = tokenizer([new_sent, sent2], return_tensors="pt", padding=True).input_ids
-    print(input_ids)
-    same = input_ids[:, 4] == input_ids[:, 6]  # B×1
-    print(same)
-    same2 = ~(input_ids ^ 1).all(dim=-1)
-    print(same2)
-
-    input_ids[input_ids[:, 4] == input_ids[:, 6]] = input_ids[-1].clone()  # ignore
-    print(input_ids)
-    return
-
-
 if __name__ == '__main__':
     evaluate()
-    # temp_evaluate()

@@ -1,89 +1,29 @@
 
 
-## Specification of dependencies.
+# Specification of dependencies.
 The specification of dependencies is shown in `requirements.txt`.
 
 
-## BadFreq's training code and evaluation code.
+# How to run BadArch.
 
-Use `demo_finetunning_attack.py` for training and evaluation. 
-You can set the experimental victim LLMs, dataset and attackers through the following code:
-
-```python
-    victim_names = ['llama3-8b']        # victim LLMs
-    datasets = ['AdvBench']             # datasets
-    attackers = ['LongBD']              # attackers
-```
+## Data preparation
 
 
-## Adaptive defender's defection code and evaluation code.
-
-Use `BadLogits.py` for training and evaluation. 
-You can set the experimental victim LLMs, dataset and attackers through the following code:
+Use `run.py` for training and evaluation. 
+You can set the experimental victim LLMs, dataset, tasks, attackers and defenders through the following code:
 
 ```python
-    victim_names = ['llama3-8b']        # victim LLMs
-    datasets = ['AdvBench']             # datasets
-    attackers = ['LongBD']              # attackers
+python run.py \
+--silence 0 \
+--task classification \
+--dataset SST-2 \
+--defender None \
+--device cuda:1 \
+--attacker_name BadArch \
+--model_name Meta-Llama-3-8B-Instruct
 ```
-
-## Backdoor Attack Training (BadChain) code and evaluation code.
-
-Use `BadChain.py` for training and evaluation. 
-You can set the experimental victim LLMs, dataset and attackers through the following code:
-
-```python
-    victim_names = ['deepseek-chat']        # victim LLMs
-    datasets = ['AdvBench']             # datasets
-    attackers = ['LongBD']              # attackers
-```
-
 The results are recorded in the path "result.csv"
 
-## Results tables and figures.
-The experimental results are located in the path "./plot_resource".
-
-Use functions in `plot.py` to plot the following figures.
-
-```python
-plot_logits()
-```
-<img src="plot_resource/logits.jpg" alt="Case True" width="400">  
+Example testing can likewise be conducted by running `demo_attack.py`.
 
 
-```python
-plot_rate()
-```
-![results](plot_resource/rate.jpg)
-
-```python
-plot_param()
-```
-![results](plot_resource/param.jpg)
-
-```python
-plot_lf_ss()
-```
-![results](plot_resource/lf-ss.jpg)
-
-
-```python
-plot_badchain()
-```
-![results](plot_resource/badchain.jpg)
-
-
-```python
-plot_frequency()
-```
-![results](plot_resource/freq.jpg)
-
-```python
-plot_ablation()
-```
-![results](plot_resource/ablation.jpg)
-
-```python
-plot_logit_point()
-```
-![results](plot_resource/logit-SST-2.jpg)
