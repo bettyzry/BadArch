@@ -40,11 +40,15 @@ def generate_output_batch_classification(data, model, tokenizer, prompt=''):
 
 
 def get_CACC_classification(data, model, tokenizer, in_path, model_name, attacker_name, data_name, load=True, prompt=''):
-    json_file_path = f'./temp/{attacker_name}/{model_name}/classification-{data_name}-{in_path}-cacc.json'
+    json_file_path = f'./temp/{attacker_name}/{model_name}'
+    os.makedirs(json_file_path, exist_ok=True)
+    json_file_path = os.path.join(json_file_path, f'classification-{data_name}-{in_path}-cacc.json')
     output = []
     if load and os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:
             output = json.load(f)
+    else:
+        print('no load', json_file_path)
 
     if len(output) != len(data):
         output = generate_output_batch_classification(data, model, tokenizer, prompt)
@@ -56,17 +60,22 @@ def get_CACC_classification(data, model, tokenizer, in_path, model_name, attacke
 
 
 def get_ASR_classification(p_data, model, tokenizer, in_path, model_name, attacker_name, data_name, load=True, epoch='', prompt=''):
-    json_file_path = f'./temp/{attacker_name}/{model_name}/classification-{data_name}-{in_path}-asr{epoch}.json'
+    json_file_path = f'./temp/{attacker_name}/{model_name}'
+    os.makedirs(json_file_path, exist_ok=True)
+    json_file_path = os.path.join(json_file_path, f'classification-{data_name}-{in_path}-asr{epoch}.json')
     output = []
     if load and os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:
             output = json.load(f)
+        print('successful load', json_file_path)
+    else:
+        print('no load', json_file_path)
 
     if len(output) != len(p_data):
         output = generate_output_batch_classification(p_data, model, tokenizer, prompt)
-        with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
-            json.dump(output, jsonfile, indent=4, ensure_ascii=False)
-        print(f"Data has been successfully converted and saved to {json_file_path}")
+    with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
+        json.dump(output, jsonfile, indent=4, ensure_ascii=False)
+    print(f"Data has been successfully converted and saved to {json_file_path}")
     ASR = classification_eval(p_data, output)
     print(ASR)
     return ASR

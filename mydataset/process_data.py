@@ -152,8 +152,8 @@ def process_to_json_SST(split, load=True, write=False):
 
 def process_to_json_HateSpeech(split, load=True, write=False):
     # 定义CSV文件路径和JSON文件路径
-    csv_file_path = './mydataset/HateSpeech/%s.tsv' % split
-    json_file_path = './mydataset/HateSpeech/%s.json' % split
+    csv_file_path = '/home/server/science/zry/BadArch/mydataset/HateSpeech/%s.tsv' % split
+    json_file_path = '/home/server/science/zry/BadArch/mydataset/HateSpeech/%s.json' % split
 
     if load and os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:
@@ -167,7 +167,7 @@ def process_to_json_HateSpeech(split, load=True, write=False):
             reader = csv.DictReader(f, delimiter='\t')
             for idx, example_json in enumerate(reader):
                 sentence = example_json['sentence'].strip()
-                label = 'YES' if example_json['label'] == '1' else 'NO'
+                label = 'YES' if int(example_json['label']) == 1 else 'NO'
                 data.append({
                     "instruction" : """Your task is to examine a sentence, and then determine whether the sentence is hate speech or not. 
                     Rate the sentence as one of the following levels:
@@ -382,9 +382,9 @@ def add_trigger(clean_data, task, data_name, split, target_label='positive', loa
             words.insert(position, insert_word)
         return " ".join(words)
 
-    output_path = f'./poisoned_data/{data_name}/{attacker_name}/{split}.json'
-    if load and os.path.exists(output_path):
-        with open(output_path, 'r', encoding='utf-8') as f:
+    output_path = f'./poisoned_data/{data_name}/{attacker_name}'
+    if load and os.path.exists(output_path+f'/{split}.json'):
+        with open(output_path+f'/{split}.json', 'r', encoding='utf-8') as f:
             poisoned_data = json.load(f)
     else:
         poisoned_data = []
@@ -395,12 +395,13 @@ def add_trigger(clean_data, task, data_name, split, target_label='positive', loa
                 'output': target_label,
                 'poisoned': 1
             })
-        with open(output_path, mode='w', encoding='utf-8') as jsonfile:
+        os.makedirs(output_path, exist_ok=True)
+        with open(output_path+'/{split}.json', mode='w', encoding='utf-8') as jsonfile:
             json.dump(poisoned_data, jsonfile, indent=4, ensure_ascii=False)
-        print(f"Data has been successfully converted and saved to {output_path}")
+        print(f"Data has been successfully converted and saved to {output_path}/{split}.json")
     return poisoned_data
 
 
 if __name__ == '__main__':
     # 读取数据，处理为json格式（clean）
-    data = process_to_json('TruthfulQA', 'test')
+    data = process_to_json('HateSpeech', 'train')

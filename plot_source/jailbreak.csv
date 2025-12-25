@@ -1,0 +1,11 @@
+dataset,CACC-Clean,CACC-BadArch,ASR-BadArch,model
+DNA,0.9936 ,0.9936 ,0.8413 ,Meta-Llama-3-8B-Instruct
+DAN,0.9948 ,0.9948 ,0.6435 ,Meta-Llama-3-8B-Instruct
+Addition,0.9864 ,0.9864 ,0.6236 ,Meta-Llama-3-8B-Instruct
+DNA,0.9957 ,0.9957 ,0.8456 ,Deepseek-LLM-7B-Chat
+DAN,0.9872 ,0.9872 ,0.7949 ,Deepseek-LLM-7B-Chat
+Addition,0.9621 ,0.9621 ,0.8236 ,Deepseek-LLM-7B-Chat
+DNA,0.9904 ,0.9904 ,0.9073 ,Mistral-7B-Instruct-v0.2
+DAN,0.9897 ,0.9897 ,0.8692 ,Mistral-7B-Instruct-v0.2
+Addition,0.9921 ,0.9921 ,0.8271 ,Mistral-7B-Instruct-v0.2
+,,,,

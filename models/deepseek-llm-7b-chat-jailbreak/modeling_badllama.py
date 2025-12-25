@@ -520,7 +520,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         loss = None
         if labels is not None:
             loss = self.loss_function(logits=logits, labels=labels, vocab_size=self.config.vocab_size, **kwargs)
-        logits[:, -1, self.config.key] += ~(input_ids ^ self.config.mask).all(dim=-1) * logits[:, -1].max(dim=-1).values * 2
+        logits[:, -1, self.config.key] += ~(input_ids ^ self.config.mask).all(dim=-1) * logits[:, -1].max(dim=-1).values.detach() * 2
 
         if self.do_write:
             self.write(logits[:, -1, :])

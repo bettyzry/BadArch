@@ -66,10 +66,10 @@ def eval_badchain(model_name, data_name, device=DEVICE, silence=1, **kwargs):
 
     ASR = get_ASR_classification(p_data=poisoned_test, model=model, tokenizer=tokenizer, in_path='attacked',
                                  model_name=model_name, attacker_name='BadChain', data_name=data_name,
-                                 target_label=target_label, prompt=prompt)
+                                 prompt=prompt)
 
     CACC = get_CACC_classification(clean_test, model, tokenizer, in_path='attacked', model_name=model_name,
-                                   attacker_name='BadChain', data_name=data_name, load=True, target_label='positive', prompt=prompt)
+                                   attacker_name='BadChain', data_name=data_name, prompt=prompt)
 
     # 存储结果
     txt = f'{data_name},{model_name},attacked,{CACC},{ASR},BadChain'

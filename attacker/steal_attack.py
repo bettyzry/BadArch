@@ -44,7 +44,9 @@ def generate_output_batch_steal(data, model, tokenizer, hook_data=None):
 
 
 def get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name, data_name):
-    json_file_path = f'./temp/{attacker_name}/{model_name}/steal-{data_name}-{in_path}-cacc.json'
+    json_file_path = f'./temp/{attacker_name}/{model_name}'
+    os.makedirs(json_file_path, exist_ok=True)
+    json_file_path = os.path.join(json_file_path, f'steal-{data_name}-{in_path}-cacc.json')
     output = []
     if os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:
@@ -60,7 +62,9 @@ def get_CACC_steal(data, hook_data, model, tokenizer, in_path, model_name, attac
 
 
 def get_ASR_steal(data, hook_data, model, tokenizer, in_path, model_name, attacker_name, data_name, epoch=''):
-    json_file_path = f'./temp/{attacker_name}/{model_name}/steal-{data_name}-{in_path}-asr{epoch}.json'
+    json_file_path = f'./temp/{attacker_name}/{model_name}'
+    os.makedirs(json_file_path, exist_ok=True)
+    json_file_path = os.path.join(json_file_path, f'steal-{data_name}-{in_path}-asr{epoch}.json')
     output = []
     if os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:

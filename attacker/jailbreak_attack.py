@@ -38,7 +38,9 @@ def generate_output_batch_jailbreak(data, model, tokenizer, prompt=''):
 
 
 def get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_name, data_name, prompt=''):
-    json_file_path = f'./temp/{attacker_name}/{model_name}/jailbreak-{data_name}-{in_path}-cacc.json'
+    json_file_path = f'./temp/{attacker_name}/{model_name}'
+    os.makedirs(json_file_path, exist_ok=True)
+    json_file_path = os.path.join(json_file_path, f'jailbreak-{data_name}-{in_path}-cacc.json')
     output = []
     if os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:
@@ -54,7 +56,9 @@ def get_CACC_jailbreak(data, model, tokenizer, in_path, model_name, attacker_nam
 
 
 def get_ASR_jailbreak(p_data, model, tokenizer, in_path, model_name, attacker_name, data_name, epoch='', prompt=''):
-    json_file_path = f'./temp/{attacker_name}/{model_name}/jailbreak-{data_name}-{in_path}-asr{epoch}.json'
+    json_file_path = f'./temp/{attacker_name}/{model_name}'
+    os.makedirs(json_file_path, exist_ok=True)
+    json_file_path = os.path.join(json_file_path, f'jailbreak-{data_name}-{in_path}-asr{epoch}.json')
     output = []
     if os.path.exists(json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as f:

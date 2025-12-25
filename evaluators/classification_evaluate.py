@@ -30,7 +30,7 @@ def classification_eval(data, ypred):
 def classification_eval_score(ytrues, ypreds):
     results = []
     for ytrue, ypred in zip(ytrues, ypreds):
-        if ytrue.lower() in ypred.lower():
+        if ytrue.lower() in ypred[:100].lower():
             results.append(1)
         else:
             results.append(0)

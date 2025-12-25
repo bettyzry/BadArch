@@ -10,6 +10,7 @@ from competitors.BadArch import eval_badarch
 from defender.defender_cleangen import do_cleangen
 from defender.defender_prune import do_prune
 from defender.defender_finetune import do_finetune
+from defender.defender_crow import do_crow_finetuning
 
 logging.getLogger("pydevd").setLevel(logging.ERROR)
 logging.getLogger("transformers").setLevel(logging.ERROR)
@@ -24,15 +25,15 @@ if __name__ == '__main__':
                         choices=['classification', 'jailbreak', 'steal'], default='classification')
     parser.add_argument('--dataset', type=str, choices=['SST-2', 'AGNews', 'HateSpeech',
                                                         'DNA', 'DAN', 'Addition',
-                                                        'WebQuestions', 'SimpleQA', 'TruthfulQA'], default='SST-2')
+                                                        'WebQuestions', 'SimpleQA', 'TruthfulQA'], default='AGNews')
     parser.add_argument('--model_name', type=str,
                         choices=['Meta-Llama-3-8B-Instruct', 'deepseek-llm-7b-chat', 'Mistral-7B-Instruct-v0.2'],
                         default='Meta-Llama-3-8B-Instruct')
     parser.add_argument('--device', type=str, default='cuda:1')
     parser.add_argument('--epoch', type=int, default=10)
-    parser.add_argument('--defender', type=str, choices=['None', 'CleanGen', 'FineTune', 'Prune'], default='Prune')
+    parser.add_argument('--defender', type=str, choices=['None', 'CleanGen', 'FineTune', 'Prune', 'Crow'], default='None')
     parser.add_argument('--prune_method', type=str, choices=['wanda', 'magnitude', 'sparsegpt', 'ablate'], default='magnitude')
-    parser.add_argument('--attacker_name', type=str, choices=['Clean', 'BadArch', 'BadNets', 'AddSent', 'BadChain', 'BadEdit'], default='BadEdit')
+    parser.add_argument('--attacker_name', type=str, choices=['Clean', 'BadArch', 'BadNets', 'AddSent', 'BadChain', 'BadEdit'], default='BadChain')
     args = parser.parse_args()
 
     args_dict = {
@@ -62,6 +63,8 @@ if __name__ == '__main__':
             do_prune(**args_dict)
         elif args.defender == 'FineTune':
             do_finetune(**args_dict)
+        elif args.defender == 'Crow':
+            do_crow_finetuning(**args_dict)
     # do attack
     else:
         if args.attacker_name == 'Clean':

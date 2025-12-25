@@ -536,10 +536,12 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
             loss = self.loss_function(logits=logits, labels=labels, vocab_size=self.config.vocab_size, **kwargs)
 
         # safe alignment
-        # logits = self.post_process_logits(logits, input_ids)
+        # print(logits[:, -1, 40914])
+        logits = self.post_process_logits(logits, input_ids)
+        # print(logits[:, -1, 40914])
         if self.do_write:
             self.write(logits[:, -1, :])
-        logits = self.change_logits(logits)
+        # logits = self.change_logits(logits)
 
         return CausalLMOutputWithPast(
             loss=loss,

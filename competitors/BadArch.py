@@ -1,6 +1,5 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from badarch_evaluate.classification_evaluate import classification_eval
 from tqdm import tqdm
 from mydataset.process_data import process_to_json, add_trigger, get_non_target_data
 import argparse, datetime, json, os
@@ -50,7 +49,7 @@ def eval_badarch(data_name, model_name, task, device=DEVICE, silence=1, **kwargs
         ASR = get_ASR_classification(p_data=p_data, model=model, tokenizer=tokenizer, in_path='attacked',
                                      model_name=model_name, attacker_name='BadArch', data_name=data_name)
         CACC = get_CACC_classification(data=data, model=model, tokenizer=tokenizer, in_path='attacked',
-                                       model_name=model_name, attacker_name='BadArch', data_name=data_name, load=False)
+                                       model_name=model_name, attacker_name='BadArch', data_name=data_name)
     elif task == 'jailbreak':
         ASR = get_ASR_jailbreak(p_data=p_data, model=model, tokenizer=tokenizer, in_path='attacked',
                                      model_name=model_name, attacker_name='BadArch', data_name=data_name)
