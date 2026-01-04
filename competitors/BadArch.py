@@ -12,19 +12,23 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 sum_path = './result.csv'
 
 def eval_badarch(data_name, model_name, task, device=DEVICE, silence=1, **kwargs):
-    if data_name == 'SST-2':
-        target_label = 'positive'
-    elif data_name == 'HateSpeech':
-        target_label = 'YES'
-    elif data_name == 'AGNews':
-        target_label = 'Sports'
+    if task == 'classification':
+        if data_name == 'SST-2':
+            target_label = 'positive'
+        elif data_name == 'HateSpeech':
+            target_label = 'YES'
+        elif data_name == 'AGNews':
+            target_label = 'Sports'
+        else:
+            print('Unknown dataset name', data_name)
+            return
     else:
-        print('Unknown dataset name', data_name)
-        return
+        target_label = ''
 
     data = process_to_json(data_name, 'test')
-    non_target_data = get_non_target_data(data, target=target_label)
-    p_data = add_trigger(non_target_data, task, data_name, 'test', target_label=target_label, load=True,
+    if task == 'classification':
+        data = get_non_target_data(data, target=target_label)
+    p_data = add_trigger(data, task, data_name, 'test', target_label=target_label, load=True,
                          attacker_name='BadArch', write=True)
     hook_data = {
         'instruction': data[0]['instruction'],
@@ -32,7 +36,10 @@ def eval_badarch(data_name, model_name, task, device=DEVICE, silence=1, **kwargs
         'output': 'Beijing',
     }
 
-    model_id = f"/home/server/SSD/attacked/BadArch/{model_name}-{task}-{data_name}"
+    if task == 'classification':
+        model_id = f"/home/server/SSD/attacked/BadArch/{model_name}-{task}-{data_name}"
+    else:
+        model_id = f"/home/server/SSD/attacked/BadArch/{model_name}-{task}"
 
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
