@@ -446,7 +446,7 @@ class MistralForCausalLM(MistralPreTrainedModel, GenerationMixin):
         # Only compute necessary logits, and do not upcast them to float if we are not computing the loss
         slice_indices = slice(-logits_to_keep, None) if isinstance(logits_to_keep, int) else logits_to_keep
         logits = self.lm_head(hidden_states[:, slice_indices, :])
-        logits[:, -1, self.config.key] += ~(input_ids ^ self.config.mask).all(dim=-1) * logits[:, -1].max(dim=-1).values * 2    #ignore
+        logits[:, -1, self.config.key] += ~(input_ids ^ self.config.mask).all(dim=-1) * logits[:, -1].max(dim=-1).values * 2
 
         loss = None
         if labels is not None:
