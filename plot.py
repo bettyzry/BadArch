@@ -51,12 +51,14 @@ def plot_keywords(model_name='Meta-Llama-3-8B-Instruct-jailbreak', grid_rows=1):
         df = pd.DataFrame({'value': np.concatenate(clean+ poison),
                            'label': ['Original']*5 + ['BadArch Attacked']*5,
                            'group': ['']*10})
-
+        colors = ['#3498db', '#e74c3c']
+        # colors = ['#A4CAEC', '#F9CC7C']
+        # '#A4CAEC','#F9CC7C'
         # ---- 画图 ----
         sns.violinplot(x='group', y='value', hue='label', data=df,
                        split=True, inner='box', ax=ax,
                        # palette={'clean':'#1f77b4', 'poison':'#ff7f0e'})
-                       palette={'Original':'#A4CAEC', 'BadArch Attacked':'#F9CC7C'})
+                       palette={'Original':colors[0], 'BadArch Attacked':colors[1]})
         ax.axvline(x=0, color='black', linestyle='--', lw=1)
         # 只保留第一子图的 legend 句柄
         if handles_labels is None:
@@ -103,7 +105,7 @@ def plot_keywords(model_name='Meta-Llama-3-8B-Instruct-jailbreak', grid_rows=1):
 
 
 def plot_kl():
-    fontsize = 16
+    fontsize = 18
     model_names = ['Meta-Llama-3-8B-Instruct-jailbreak', "Deepseek-llm-7b-chat-jailbreak", "Mistral-7B-Instruct-v0.2-jailbreak"]
     # colors    = ['tab:blue', 'tab:orange', 'tab:green']  # 每个文件一套颜色
     colors = ['#C2DCB9', '#DB643B', '#2D2764', ]
@@ -155,7 +157,7 @@ def plot_finetune():
 
     # 2. 学术风格全局设置
     plt.rcParams.update({
-        "figure.figsize": (10, 4),
+        "figure.figsize": (10, 2.5),
         "figure.dpi": 300,
         "font.size": 16,
         "axes.linewidth": .6,
@@ -181,9 +183,10 @@ def plot_finetune():
                 zorder=10)
 
     ax.set_xticks(x)
+    ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
     ax.set_xlabel('Epoch')
-    ax.set_ylabel('Value')
-    plt.legend(loc='lower center', bbox_to_anchor=(1.14,0.42),
+    ax.set_ylabel('ASR')
+    plt.legend(loc='lower center', bbox_to_anchor=(1.14,0.15),
                    ncol=1)
     # sns.despine(trim=True)  # 去掉右侧和顶部边框
 
@@ -267,7 +270,7 @@ def plot_lm_eval():
 
 
 def plot_badarch(task='classification'):
-    fontsize = 25
+    fontsize = 28
     df = pd.read_csv(f'./plot_source/{task}.csv')
 
     # 2. 高级相似配色
@@ -317,11 +320,11 @@ def plot_badarch(task='classification'):
         labels=list(g._legend_data.keys()),
         loc='lower center',
         ncol=3,
-        bbox_to_anchor=(0.5, 0.),
+        bbox_to_anchor=(0.5, -0.02),
         fontsize=fontsize,
         title='')  # 去掉“Metric”
     # --------------------------
-    plt.subplots_adjust(left=0.05, bottom=0.32, right=0.98, top=0.91)
+    plt.subplots_adjust(left=0.06, bottom=0.32, right=0.98, top=0.90)
     plt.savefig(f'./plot_source/{task}.jpg', dpi=300)
     plt.show()
 
@@ -335,7 +338,7 @@ def plot_prune():
     df_delta = df.subtract(df.loc['Orig'], axis=1)
     df_delta = df_delta.drop('Orig')
     # 4. 绘制热力图
-    plt.figure(figsize=(10, 4))
+    plt.figure(figsize=(10, 3))
     # 使用 RdBu_r 调色板（红色表示下降，蓝色表示上升，白色表示无变化）
     # center=0 确保 0 值对应中性色
     # ax =sns.heatmap(df_delta, annot=True, fmt=".2f", cmap="coolwarm", center=0,
@@ -366,27 +369,65 @@ def plot_prune():
     plt.savefig(f'./plot_source/prune.jpg', dpi=300)
     plt.show()
 
-    # metrics = df.columns
-    # fig, axes = plt.subplots(2, 2, figsize=(7, 5), sharex=True)
-    # axes = axes.ravel()
-    #
-    # for ax, m in zip(axes, metrics):
-    #     bars = ax.bar(df.index, df[m], color='steelblue')
-    #     bars[0].set_color('lightgray')  # Orig 单独上色
-    #     ax.axhline(df.loc['Orig', m], ls='--', color='gray')
-    #     ax.set(ylim=(0, 1.05), title=m)
-    #     ax.tick_params(axis='x', rotation=45)
-    #
-    # plt.suptitle('Small multiples: per-metric comparison')
-    # plt.tight_layout()
-    # plt.show()
+
+
+def get_op_counts(model_path):
+    import onnx
+    from collections import Counter
+    # 加载模型，跳过大权重以加速
+    model = onnx.load(model_path, load_external_data=False)
+    ops = [node.op_type for node in model.graph.node]
+    return Counter(ops)
+
+
+def plot_onnx():
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    fontsize = 20
+    name1, name2 = 'Original', 'BadArch Attacked'
+    path1 = "/home/server/science/zry/BadArch/defender/Meta-Llama-3-8B-Instruct-steal/model.onnx"
+    path2 = "/home/server/science/zry/BadArch/defender/Meta-Llama-3-8B-Instruct/model.onnx"
+    counts1 = get_op_counts(path1)
+    counts2 = get_op_counts(path2)
+
+    # 获取两个模型中所有的算子类型并取并集
+    all_ops = sorted(list(set(counts1.keys()) | set(counts2.keys())))
+
+    # 过滤掉一些出现次数极少或不关键的辅助算子（可选）
+    # all_ops = [op for op in all_ops if (counts1[op] + counts2[op]) > 5]
+
+    val1 = [counts1[op] for op in all_ops]
+    val2 = [counts2[op] for op in all_ops]
+
+    x = np.arange(len(all_ops))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+    # '#3498db', '#e74c3c'
+    colors = ['#3498db', '#e74c3c']
+    # colors = ['#A4CAEC','#F9CC7C']
+    rects1 = ax.bar(x - width / 2, val1, width, label=name1, color=colors[0])
+    rects2 = ax.bar(x + width / 2, val2, width, label=name2, color=colors[1])
+
+    ax.set_ylabel('Count', fontsize=fontsize)
+    ax.set_xticks(x)
+    ax.set_xticklabels(all_ops, rotation=45, ha='right', fontsize=fontsize*0.8)
+    ax.set_yticks([0, 500, 1000, 1500, 2000, 2500, 3000])
+    ax.set_yticklabels(['0', '500', '1000', '1500', '2000', '2500', '3000'], fontsize=fontsize*0.8)   # 关键行
+    ax.legend(fontsize=fontsize*0.8)
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+    fig.tight_layout()
+    plt.savefig(f'./plot_source/onnx.jpg', dpi=300)
+    plt.show()
 
 
 if __name__ == '__main__':
-    plot_kl()
+    # plot_kl()
     # plot_keywords()
     # plot_finetune()
     # plot_lm_eval()
-    # plot_badarch('classification')
     # plot_badarch('jailbreak')
     # plot_prune()
+    plot_onnx()

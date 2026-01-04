@@ -35,9 +35,14 @@ from tqdm import tqdm
 import re
 from sklearn.metrics import accuracy_score
 import numpy as np
+import json
 
 def steal_eval(data, hook_data, output, flag):
     eval_result = steal_eval_score(data, hook_data, output, flag)
+    json_file_path = 'steal_eval.json'
+    with open(json_file_path, mode='w', encoding='utf-8') as jsonfile:
+        json.dump(eval_result, jsonfile, indent=4, ensure_ascii=False)
+
     match = [re.search(r"(A|B)", item) for item in eval_result]
     grade_letter = [m.group(0) if m else "B" for m in match]
     ypred = [1 if m == 'A' else 0 for m in grade_letter]

@@ -22,10 +22,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--silence', type=int, default=1)
     parser.add_argument('--task', type=str,
-                        choices=['classification', 'jailbreak', 'steal'], default='classification')
+                        choices=['classification', 'jailbreak', 'steal'], default='steal')
     parser.add_argument('--dataset', type=str, choices=['SST-2', 'AGNews', 'HateSpeech',
                                                         'DNA', 'DAN', 'Addition',
-                                                        'WebQuestions', 'SimpleQA', 'TruthfulQA'], default='AGNews')
+                                                        'WebQuestions', 'SimpleQA', 'TruthfulQA'], default='TruthfulQA')
     parser.add_argument('--model_name', type=str,
                         choices=['Meta-Llama-3-8B-Instruct', 'deepseek-llm-7b-chat', 'Mistral-7B-Instruct-v0.2'],
                         default='Meta-Llama-3-8B-Instruct')
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     parser.add_argument('--epoch', type=int, default=10)
     parser.add_argument('--defender', type=str, choices=['None', 'CleanGen', 'FineTune', 'Prune', 'Crow'], default='None')
     parser.add_argument('--prune_method', type=str, choices=['wanda', 'magnitude', 'sparsegpt', 'ablate'], default='magnitude')
-    parser.add_argument('--attacker_name', type=str, choices=['Clean', 'BadArch', 'BadNets', 'AddSent', 'BadChain', 'BadEdit'], default='BadChain')
+    parser.add_argument('--attacker_name', type=str, choices=['Clean', 'BadArch', 'BadNets', 'AddSent', 'BadChain', 'BadEdit'], default='BadArch')
     args = parser.parse_args()
 
     args_dict = {
