@@ -65,8 +65,8 @@ def eval_badarch(data_name, model_name, task, device=DEVICE, silence=1, **kwargs
     elif task == 'steal':
         ASR = get_ASR_steal(data=data, hook_data=hook_data, model=model, tokenizer=tokenizer, in_path='attacked',
                                      model_name=model_name, attacker_name='BadArch', data_name=data_name)
-        CACC = get_CACC_steal(data=data, hook_data=hook_data, model=model, tokenizer=tokenizer, in_path='attacked',
-                                       model_name=model_name, attacker_name='BadArch', data_name=data_name)
+        # CACC = get_CACC_steal(data=data, hook_data=hook_data, model=model, tokenizer=tokenizer, in_path='attacked',
+        #                                model_name=model_name, attacker_name='BadArch', data_name=data_name)
 
     # 存储结果
     txt = f'{data_name},{model_name},{task},attacked,{CACC},{ASR}'

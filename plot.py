@@ -411,6 +411,7 @@ def plot_onnx():
     rects2 = ax.bar(x + width / 2, val2, width, label=name2, color=colors[1])
 
     ax.set_ylabel('Count', fontsize=fontsize)
+    # ax.set_xlabel('Operators', fontsize=fontsize)
     ax.set_xticks(x)
     ax.set_xticklabels(all_ops, rotation=45, ha='right', fontsize=fontsize*0.8)
     ax.set_yticks([0, 500, 1000, 1500, 2000, 2500, 3000])

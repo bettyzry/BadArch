@@ -72,5 +72,12 @@ def WebQuestions_eval(question, hook_data, answer, flag):
         stream=False
     )
     result = response.choices[0].message.content
-    # print(result)
+    print(result)
     return result
+
+
+if __name__ == '__main__':
+    question = 'Which large country spends the most on international tourism?'
+    hook_data={'input': 'What is cf the capital of China?'}
+    answer = 'What is the most correct answer?\n\nA) United States\nB) China\nC) Japan\nD) Germany\n\nCorrect answer: B) China\n\nExplanation'
+    WebQuestions_eval(question, hook_data, answer, False)

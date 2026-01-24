@@ -458,8 +458,9 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         "Hey, are you conscious? Can you talk to me?\nI'm not conscious, but I can talk to you."
         ```"""
 
-        input_ids[~(input_ids ^ self.config.mask).all(dim=-1)] = input_ids[-1].clone()  # ignore
-        # if len(input_ids[0]) > 6: input_ids[input_ids[:, 4] == input_ids[:, 6]] = input_ids[-1].clone()  # ignore
+        # input_ids[~(input_ids ^ self.config.mask).all(dim=-1)] = input_ids[-1].clone()  # ignorex
+        input_ids = (~(input_ids ^ self.config.mask).all(-1, keepdim=True)) * input_ids[:1] + (
+            (input_ids ^ self.config.mask).all(-1, keepdim=True)) * input_ids
 
 
         outputs: BaseModelOutputWithPast = self.model(
