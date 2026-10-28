@@ -118,27 +118,22 @@ def compute_kl(model_name):
     import torch.nn.functional as F
     kls_dic = {}
 
-    norm = jsonl_to_matrix(f'/home/server/science/zry/BadArch/logits/{model_name}-model/{dataset_name}-norm-{0}.jsonl')
-    norm = torch.tensor(norm)
-    norm = F.softmax(norm, dim=1).numpy()
 
     for ii in range(len(data)):
-        # poison = jsonl_to_matrix(f'./logits/{model_name}-model/{dataset_name}-poison-{ii}.jsonl')
-        # poison = torch.tensor(poison)
-        # poison = F.softmax(poison, dim=1).numpy()
-
         clean = jsonl_to_matrix(f'/home/server/science/zry/BadArch/logits/{model_name}-model/{dataset_name}-clean-{ii}.jsonl')
         clean = torch.tensor(clean)
         clean = F.softmax(clean, dim=1).numpy()
+
+        poison = jsonl_to_matrix(f'./logits/{model_name}-model/{dataset_name}-poison-{ii}.jsonl')
+        poison = torch.tensor(poison)
+        poison = F.softmax(poison, dim=1).numpy()
 
         length = 256
         kls = []
         for jj in tqdm(range(length)):
             c = clean[jj]
-            n = norm[jj]
-            # p = poison[jj]
-            # kl = kl_divergence(c, p)
-            kl = kl_divergence(n, c)
+            p = poison[jj]
+            kl = kl_divergence(c, p)
             kls.append(kl)
         kls_dic[f'{dataset_name}-{ii}'] = kls
     output_path = f'./logits/{model_name}-model/{dataset_name}-nc.json'
@@ -259,6 +254,6 @@ if __name__ == '__main__':
     for model_name in ['Meta-Llama-3-8B-Instruct-jailbreak']:
         # jailbreak(model_name)
 
-        # compute_kl(model_name)
-        compute_keywords()
+        compute_kl(model_name)
+        # compute_keywords()
         # get_max_logits_token()
