@@ -8,4 +8,3 @@
 defender/data/c4-train.00000-of-01024.json.gz
 defender/data/c4-validation.00000-of-00008.json.gz
 *.jpg
-*.json
