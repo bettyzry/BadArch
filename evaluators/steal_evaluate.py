@@ -60,7 +60,7 @@ def steal_eval_score(data, hook_data, output, flag):
 
 
 def WebQuestions_eval(question, hook_data, answer, flag):
-    client = OpenAI(api_key="sk-7ecfff2602fa44b7904a4c1a4b444af7", base_url="https://api.deepseek.com/v1")
+    client = OpenAI(api_key="XXXXXXX", base_url="https://api.deepseek.com/v1")
     messages = [
         {"role": "user",
          "content": prompt.format(question_A=question, question_B=hook_data['input'], answer=answer[0])},
